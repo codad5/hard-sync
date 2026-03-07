@@ -2,6 +2,7 @@ pub mod config;
 pub mod drive;
 pub mod ignore;
 pub mod sync_engine;
+pub mod watcher;
 
 // Config API
 pub use config::{
@@ -11,6 +12,9 @@ pub use config::{
 
 // Drive API
 pub use drive::{find_mounted_drive, get_drive_id, same_drive};
+
+// Watch API
+pub use watcher::{watch_pair, WatchEvent, WatchHandle};
 
 // Sync API
 pub use sync_engine::{
