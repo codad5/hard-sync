@@ -89,10 +89,11 @@ Done.  2 copied  1 updated  1 trashed  143 skipped  0 errors
 ### `hsync watch` — Auto-sync on drive detect / file change
 
 ```bash
-hsync watch --name <name>
+hsync watch --name <name>           # foreground — blocks until Ctrl+C
+hsync watch --name <name> --detach  # background — spawns a daemon, returns immediately
 ```
 
-Blocks until Ctrl+C. For cross-drive pairs, waits for the drive to appear, syncs immediately on plug-in, and re-syncs on file changes while the drive is connected.
+Foreground mode blocks until Ctrl+C. Background mode (`--detach`) writes the process PID and log output to `~/.local/share/hsync/` (Windows: `%APPDATA%\hsync\`) and exits.
 
 ```
 Watching "backup"...
@@ -100,9 +101,32 @@ Press Ctrl+C to stop.
 
   Ready. Watching for changes...
   [14:23:01] Drive detected at E:\ — syncing...
-  [14:23:04] Done.  5 copied  0 updated  0 trashed  210 skipped
+  Done.  5 copied  0 updated  0 trashed  210 skipped
   Watching for changes...
 ```
+
+#### Managing background watchers
+
+```bash
+hsync watch list                     # show all running background watchers
+hsync watch attach --name <name>     # tail the log (Ctrl+C detaches, watcher keeps running)
+hsync watch stop --name <name>       # stop a specific background watcher
+hsync watch stop --all               # stop all background watchers
+```
+
+---
+
+### `hsync autostart` — Run watchers on login
+
+Register a watcher to start automatically in the background when you log in:
+
+```bash
+hsync autostart enable --name <name>   # register with OS startup
+hsync autostart disable --name <name>  # unregister
+hsync autostart list                   # show enabled/disabled status for all pairs
+```
+
+Uses the OS-native startup mechanism (Windows registry, Linux XDG autostart, macOS launchd).
 
 ---
 
@@ -139,6 +163,15 @@ hsync remove --name <name>
 ```
 
 Does not delete any files — only removes the pair from config.
+
+---
+
+### `hsync config` — Config file management
+
+```bash
+hsync config path    # print the path to the config file
+hsync config reset   # delete the config file and remove all pairs
+```
 
 ---
 
