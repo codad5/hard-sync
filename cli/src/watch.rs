@@ -1,11 +1,35 @@
 use colored::Colorize;
+use fli::option_parser::{Value, ValueTypes};
 use hard_sync_core::{watch_pair, WatchEvent};
 
+use crate::daemon::spawn_detached;
 use crate::output::{print_err, print_sync_report, require_name};
 
 pub fn watch_callback(data: &fli::command::FliCallbackData) {
     let name = match require_name(data) { Some(n) => n, None => return };
 
+    let detach = matches!(
+        data.get_option_value("detach"),
+        Some(ValueTypes::OptionalSingle(Some(Value::Bool(true))))
+    );
+
+    if detach {
+        match spawn_detached(&name) {
+            Ok(pid) => {
+                println!(
+                    "Watcher {} started in background (PID {}).",
+                    format!("\"{}\"", name).cyan().bold(),
+                    pid.to_string().dimmed()
+                );
+                println!("{}", "  Run `hsync watch attach --name <name>` to view output.".dimmed());
+                println!("{}", "  Run `hsync watch stop --name <name>` to stop it.".dimmed());
+            }
+            Err(e) => print_err(&e),
+        }
+        return;
+    }
+
+    // Foreground mode
     println!("Watching {}...", format!("\"{}\"", name).cyan().bold());
     println!("{}", "Press Ctrl+C to stop.\n".dimmed());
 
