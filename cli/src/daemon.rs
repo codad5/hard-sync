@@ -59,13 +59,16 @@ fn is_alive(pid: u32) -> bool {
     }
     #[cfg(windows)]
     {
+        // Use exact CSV match: tasklist /FO CSV produces "name","pid",...
+        // We search for ,"<pid>", to avoid partial matches (e.g. 7 inside 7532).
         let out = Command::new("tasklist")
             .args(["/FI", &format!("PID eq {}", pid), "/NH", "/FO", "CSV"])
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .output()
             .ok();
-        out.map(|o| String::from_utf8_lossy(&o.stdout).contains(&pid.to_string()))
+        let needle = format!(",\"{}\"", pid);
+        out.map(|o| String::from_utf8_lossy(&o.stdout).contains(needle.as_str()))
             .unwrap_or(false)
     }
 }
@@ -165,6 +168,27 @@ pub fn watch_list_callback(_data: &fli::command::FliCallbackData) {
 pub fn watch_attach_callback(data: &fli::command::FliCallbackData) {
     let name = match require_name(data) { Some(n) => n, None => return };
 
+    // Require a live PID file — no PID file means the watcher is not running
+    match read_pid(&name) {
+        None => {
+            print_err(&format!(
+                "Watcher \"{}\" is not running. Start it with: hsync watch --name {} --detach",
+                name, name
+            ));
+            return;
+        }
+        Some(pid) if !is_alive(pid) => {
+            // Stale PID file — clean it up and bail
+            let _ = pid_file(&name).ok().map(|p| fs::remove_file(p));
+            print_err(&format!(
+                "Watcher \"{}\" is not running (stale PID {}). Start it with: hsync watch --name {} --detach",
+                name, pid, name
+            ));
+            return;
+        }
+        Some(_) => {} // alive — proceed
+    }
+
     let log_path = match log_file(&name) {
         Ok(p) => p,
         Err(e) => { print_err(&e); return; }
@@ -173,13 +197,6 @@ pub fn watch_attach_callback(data: &fli::command::FliCallbackData) {
     if !log_path.exists() {
         print_err(&format!("No log file found for \"{}\". Is it running? Try: hsync watch list", name));
         return;
-    }
-
-    // Check the watcher is actually alive
-    if let Some(pid) = read_pid(&name) {
-        if !is_alive(pid) {
-            println!("{}", format!("Warning: watcher \"{}\" (PID {}) does not appear to be running.", name, pid).yellow());
-        }
     }
 
     let mut file = match fs::File::open(&log_path) {
