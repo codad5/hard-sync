@@ -218,6 +218,7 @@ dependencies = [
  "sha2",
  "sysinfo",
  "walkdir",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
