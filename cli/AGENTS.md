@@ -187,6 +187,38 @@ No sync pairs configured. Run `hsync init` to add one.
 
 ---
 
+### `hsync drives`
+List all currently connected drives. Annotates any drive that matches a configured pair.
+
+```
+hsync drives
+```
+
+No flags. Takes no arguments.
+
+Expected output:
+```
+Connected drives (3)
+
+  /media/MY_USB  MY_USB [removable] — matches pair "my-backup"
+    18.5 GB / 32.0 GB
+
+  /media/WORK_USB  WORK_USB [removable]
+    44.2 GB / 64.0 GB
+
+  /  system
+    120.3 GB / 500.0 GB
+```
+
+If no drives detected:
+```
+No drives detected.
+```
+
+Drive match is based on the volume label stored in `drive_id.label` for each configured pair.
+
+---
+
 ### `hsync remove`
 Remove a named sync pair from config (does not delete any files).
 

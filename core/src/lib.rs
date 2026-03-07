@@ -15,12 +15,13 @@ pub use config::{
 pub use sounds::{play_event_sound, SoundEvent};
 
 // Drive API
-pub use drive::{find_mounted_drive, get_drive_id, same_drive};
+pub use drive::{find_mounted_drive, get_drive_id, list_connected_drives, same_drive, ConnectedDrive};
 
 // Watch API
 pub use watcher::{watch_pair, WatchEvent, WatchHandle};
 
 // Sync API
 pub use sync_engine::{
-    clear_trash, list_trash, sync_pair, SyncError, SyncOptions, SyncReport, TrashEntry,
+    clear_trash, list_trash, sync_pair, SyncError, SyncOperation, SyncOptions, SyncOutcome,
+    SyncReport, TrashEntry,
 };

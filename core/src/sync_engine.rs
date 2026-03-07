@@ -22,6 +22,20 @@ pub struct SyncError {
     pub message: String,
 }
 
+pub enum SyncOutcome {
+    Copied,
+    Updated,
+    Trashed,
+    Deleted,
+    Skipped,
+    Ignored,
+}
+
+pub struct SyncOperation {
+    pub rel_path: String,
+    pub outcome: SyncOutcome,
+}
+
 pub struct SyncReport {
     pub copied: usize,
     pub updated: usize,
@@ -30,6 +44,7 @@ pub struct SyncReport {
     pub skipped: usize,
     pub ignored: usize,
     pub errors: Vec<SyncError>,
+    pub ops: Vec<SyncOperation>,
 }
 
 pub struct TrashEntry {
@@ -194,6 +209,7 @@ pub fn sync_pair(name: &str, options: SyncOptions) -> Result<SyncReport, String>
         skipped: 0,
         ignored: 0,
         errors: vec![],
+        ops: vec![],
     };
 
     // Phase 1: source → target (copy new / overwrite changed)
@@ -206,6 +222,7 @@ pub fn sync_pair(name: &str, options: SyncOptions) -> Result<SyncReport, String>
                     copy_file(&src.abs_path, &dest, &mut report.errors);
                 }
                 report.copied += 1;
+                report.ops.push(SyncOperation { rel_path: rel.clone(), outcome: SyncOutcome::Copied });
             }
             Some(tgt) => {
                 let changed = if options.verify {
@@ -221,8 +238,10 @@ pub fn sync_pair(name: &str, options: SyncOptions) -> Result<SyncReport, String>
                         copy_file(&src.abs_path, &dest, &mut report.errors);
                     }
                     report.updated += 1;
+                    report.ops.push(SyncOperation { rel_path: rel.clone(), outcome: SyncOutcome::Updated });
                 } else {
                     report.skipped += 1;
+                    report.ops.push(SyncOperation { rel_path: rel.clone(), outcome: SyncOutcome::Skipped });
                 }
             }
         }
@@ -239,6 +258,7 @@ pub fn sync_pair(name: &str, options: SyncOptions) -> Result<SyncReport, String>
                     trash_file(&tgt.abs_path, &target_path, &pair, &mut report.errors);
                 }
                 report.trashed += 1;
+                report.ops.push(SyncOperation { rel_path: rel.clone(), outcome: SyncOutcome::Trashed });
             }
             DeleteBehavior::Delete => {
                 if !options.dry_run {
@@ -250,9 +270,11 @@ pub fn sync_pair(name: &str, options: SyncOptions) -> Result<SyncReport, String>
                     }
                 }
                 report.deleted += 1;
+                report.ops.push(SyncOperation { rel_path: rel.clone(), outcome: SyncOutcome::Deleted });
             }
             DeleteBehavior::Ignore => {
                 report.ignored += 1;
+                report.ops.push(SyncOperation { rel_path: rel.clone(), outcome: SyncOutcome::Ignored });
             }
         }
     }

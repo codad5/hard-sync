@@ -4,7 +4,32 @@ use sysinfo::Disks;
 
 use crate::config::DriveId;
 
+// ── Public types ──────────────────────────────────────────────────────────────
+
+pub struct ConnectedDrive {
+    pub name: String,
+    pub mount_point: PathBuf,
+    pub is_removable: bool,
+    pub total_space: u64,
+    pub available_space: u64,
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
+
+/// List all currently connected drives on the system.
+pub fn list_connected_drives() -> Vec<ConnectedDrive> {
+    let disks = Disks::new_with_refreshed_list();
+    disks
+        .iter()
+        .map(|d| ConnectedDrive {
+            name: d.name().to_string_lossy().to_string(),
+            mount_point: d.mount_point().to_path_buf(),
+            is_removable: d.is_removable(),
+            total_space: d.total_space(),
+            available_space: d.available_space(),
+        })
+        .collect()
+}
 
 /// Returns true if both paths live on the same physical drive / mount point.
 /// Used on init to decide whether drive_id should be stored.
