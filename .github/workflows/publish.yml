@@ -1,0 +1,46 @@
+name: Publish to crates.io
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build and test
+        run: cargo build --verbose && cargo test --verbose
+
+      - name: Check version consistency
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          CORE_VERSION=$(grep '^version' core/Cargo.toml | head -1 | sed -E 's/version = "(.*)"/\1/')
+          CLI_VERSION=$(grep '^version' cli/Cargo.toml | head -1 | sed -E 's/version = "(.*)"/\1/')
+          if [ "$TAG_VERSION" != "$CORE_VERSION" ]; then
+            echo "Tag version ($TAG_VERSION) does not match core/Cargo.toml ($CORE_VERSION)"
+            exit 1
+          fi
+          if [ "$TAG_VERSION" != "$CLI_VERSION" ]; then
+            echo "Tag version ($TAG_VERSION) does not match cli/Cargo.toml ($CLI_VERSION)"
+            exit 1
+          fi
+
+      - name: Publish hard-sync-core
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
+        run: cargo publish -p hard-sync-core --token $CARGO_REGISTRY_TOKEN
+
+      - name: Wait for hard-sync-core to be available on crates.io
+        run: sleep 30
+
+      - name: Publish hsync
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
+        run: cargo publish -p hsync --token $CARGO_REGISTRY_TOKEN

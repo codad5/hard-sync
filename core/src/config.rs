@@ -73,6 +73,19 @@ impl Default for AppConfig {
 
 // ── Config file path ───────────────────────────────────────────────────────────
 
+pub fn get_config_path() -> Result<PathBuf, String> {
+    config_path()
+}
+
+pub fn reset_config() -> Result<(), String> {
+    let path = config_path()?;
+    if path.exists() {
+        std::fs::remove_file(&path)
+            .map_err(|e| format!("Failed to delete config: {}", e))?;
+    }
+    Ok(())
+}
+
 fn config_path() -> Result<PathBuf, String> {
     let dir = dirs::config_dir()
         .ok_or_else(|| "Could not determine config directory".to_string())?

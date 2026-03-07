@@ -47,7 +47,7 @@ pub fn same_drive(a: &Path, b: &Path) -> bool {
 /// Returns None if the drive cannot be identified (e.g. network share).
 pub fn get_drive_id(path: &Path) -> Option<DriveId> {
     let disks = Disks::new_with_refreshed_list();
-    let canonical = path.canonicalize().ok()?;
+    let canonical = strip_unc_prefix(&path.canonicalize().ok()?);
 
     let disk = disks
         .iter()
@@ -101,12 +101,28 @@ pub fn find_mounted_drive(id: &DriveId) -> Option<PathBuf> {
 
 fn find_mount_point(path: &Path) -> Option<PathBuf> {
     let canonical = path.canonicalize().ok()?;
+    // On Windows, canonicalize() prepends \\?\ which breaks starts_with()
+    // comparisons against plain drive-letter paths returned by sysinfo.
+    let canonical = strip_unc_prefix(&canonical);
     let disks = Disks::new_with_refreshed_list();
     disks
         .iter()
         .filter(|d| canonical.starts_with(d.mount_point()))
         .max_by_key(|d| d.mount_point().as_os_str().len())
         .map(|d| d.mount_point().to_path_buf())
+}
+
+/// Strip the Windows extended-length path prefix `\\?\` if present.
+/// On other platforms this is a no-op.
+fn strip_unc_prefix(path: &Path) -> PathBuf {
+    #[cfg(target_os = "windows")]
+    {
+        let s = path.to_string_lossy();
+        if let Some(rest) = s.strip_prefix(r"\\?\") {
+            return PathBuf::from(rest);
+        }
+    }
+    path.to_path_buf()
 }
 
 fn root_of(path: &Path) -> Option<std::path::Component<'_>> {
@@ -208,4 +224,43 @@ fn get_volume_uuid(mount_point: &Path) -> Option<String> {
 #[cfg(not(any(target_os = "windows", target_os = "linux")))]
 fn get_volume_uuid(_mount_point: &Path) -> Option<String> {
     None
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::strip_unc_prefix;
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn strip_unc_removes_windows_prefix() {
+        assert_eq!(
+            strip_unc_prefix(Path::new(r"\\?\C:\foo\bar")),
+            PathBuf::from(r"C:\foo\bar")
+        );
+        assert_eq!(
+            strip_unc_prefix(Path::new(r"\\?\E:\hard-sync-target")),
+            PathBuf::from(r"E:\hard-sync-target")
+        );
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn strip_unc_is_noop_for_plain_paths() {
+        assert_eq!(
+            strip_unc_prefix(Path::new(r"C:\foo\bar")),
+            PathBuf::from(r"C:\foo\bar")
+        );
+    }
+
+    #[test]
+    #[cfg(not(target_os = "windows"))]
+    fn strip_unc_is_noop_on_non_windows() {
+        assert_eq!(
+            strip_unc_prefix(Path::new("/home/user/foo")),
+            PathBuf::from("/home/user/foo")
+        );
+    }
 }

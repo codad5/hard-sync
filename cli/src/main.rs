@@ -7,6 +7,7 @@ mod watch;
 mod list;
 mod remove;
 mod trash;
+mod config;
 
 use init::init_callback;
 use sync::sync_callback;
@@ -14,6 +15,7 @@ use watch::watch_callback;
 use list::{list_callback, drives_callback};
 use remove::remove_callback;
 use trash::{trash_list_callback, trash_clear_callback};
+use config::{config_path_callback, config_reset_callback};
 
 fn set_source_callback(data: &fli::command::FliCallbackData) {
     use colored::Colorize;
@@ -78,6 +80,17 @@ fn main() {
     let remove = app.command("remove", "Remove a named sync pair from config").unwrap();
     remove.add_option("name", "Name of the pair to remove", "-n", "--name", ValueTypes::RequiredSingle(Value::Str(String::new())));
     remove.set_callback(remove_callback);
+
+    // hsync config
+    let cfg = app.command("config", "Manage hard-sync configuration").unwrap();
+
+    // hsync config path
+    cfg.subcommand("path", "Print the path to the config file")
+        .set_callback(config_path_callback);
+
+    // hsync config reset
+    cfg.subcommand("reset", "Delete the config file and remove all pairs")
+        .set_callback(config_reset_callback);
 
     // hsync trash
     let trash = app.command("trash", "Manage the trash folder for a sync pair").unwrap();

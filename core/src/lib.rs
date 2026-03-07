@@ -7,8 +7,9 @@ pub mod watcher;
 
 // Config API
 pub use config::{
-    add_pair, get_pair, list_pairs, remove_pair, set_source, update_pair,
-    AppConfig, DeleteBehavior, DriveId, PairConfig, SoundConfig, SourceSide,
+    add_pair, get_config_path, get_pair, list_pairs, remove_pair, reset_config,
+    set_source, update_pair, AppConfig, DeleteBehavior, DriveId, PairConfig, SoundConfig,
+    SourceSide,
 };
 
 // Sounds API
