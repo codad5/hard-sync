@@ -1,14 +1,6 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+pub mod config;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use config::{
+    add_pair, get_pair, list_pairs, remove_pair, set_source, update_pair,
+    AppConfig, DeleteBehavior, DriveId, PairConfig, SoundConfig, SourceSide,
+};
