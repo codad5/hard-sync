@@ -1,6 +1,6 @@
 [package]
 name = "hsync"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "Sync files between two paths. Auto-detects drives by UUID/label."
 license = "MIT"
@@ -16,4 +16,4 @@ path = "src/main.rs"
 chrono = "0.4.44"
 colored = "3.1.1"
 fli = "1.2.2"
-hard-sync-core = { path = "../core", version = "0.1.0" }
+hard-sync-core = { path = "../core", version = "0.2.0" }
