@@ -180,3 +180,4 @@ Do NOT use `clap`. Use `fli`.
 12. Never load file content into memory for comparison.
 13. Default comparison is mtime + size. SHA256 only on `--verify`.
 14. Drive paths are never the stable identifier — always UUID/label.
+15. **Always use `cargo add <crate>` to install dependencies** — never write dependency entries into `Cargo.toml` manually, and never pin specific versions in docs or code. `cargo add` picks the latest compatible version. Run it from inside the relevant workspace member directory (`core/` or `cli/`).

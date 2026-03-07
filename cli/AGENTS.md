@@ -284,9 +284,11 @@ Trash cleared for "my-backup".  2 files removed (12.3 MB freed)
 
 ## Crates for This Module
 
-```toml
-[dependencies]
-hard-sync-core = { path = "../core" }
-fli = "1.2.0"
-colored = "2"
+Install via `cargo add` from inside `cli/` — do not pin versions manually:
+
+```bash
+cargo add fli
+cargo add colored
 ```
+
+`hard-sync-core` is added as a path dependency in `cli/Cargo.toml` by the workspace scaffold — not via `cargo add`.

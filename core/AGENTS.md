@@ -201,16 +201,17 @@ Use the `dirs` crate for this. Create the directory if it doesn't exist on first
 
 ## Crates for This Module
 
-```toml
-[dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-walkdir = "2"
-chrono = { version = "0.4", features = ["serde"] }
-sysinfo = "0.29"
-notify = "6"
-rodio = "0.17"
-sha2 = "0.10"
-regex = "1"
-dirs = "5"
+Install via `cargo add` from inside `core/` — do not pin versions manually:
+
+```bash
+cargo add serde --features derive
+cargo add serde_json
+cargo add walkdir
+cargo add chrono --features serde
+cargo add sysinfo
+cargo add notify
+cargo add rodio
+cargo add sha2
+cargo add regex
+cargo add dirs
 ```

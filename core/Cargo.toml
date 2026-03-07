@@ -1,0 +1,15 @@
+[package]
+name = "hard-sync-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = { version = "0.4.44", features = ["serde"] }
+dirs = "6.0.0"
+notify = "8.2.0"
+regex = "1.12.3"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+sha2 = "0.10.9"
+sysinfo = "0.38.3"
+walkdir = "2.5.0"
