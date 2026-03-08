@@ -16,7 +16,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build and test
-        run: cargo build --verbose && cargo test --verbose
+        run: |
+          cargo build --verbose -p hard-sync-core -p hsync
+          cargo test --verbose -p hard-sync-core -p hsync
 
       - name: Check version consistency
         run: |
