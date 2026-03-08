@@ -61,26 +61,23 @@ fn play_default_blocking(event: SoundEvent) -> Result<(), Box<dyn std::error::Er
 
     let handle = rodio::DeviceSinkBuilder::open_default_sink()?;
 
-    // Helper: play a single tone and block until done
-    let play_tone = |freq: f32, ms: u64, vol: f32| -> Result<(), Box<dyn std::error::Error>> {
+    // Sink::append accepts any Source — no Read+Seek required
+    let play_tone = |freq: f32, ms: u64, vol: f32| {
         let src = SineWave::new(freq).take_duration(Duration::from_millis(ms)).amplify(vol);
-        let player = rodio::play(&handle.mixer(), src)?;
-        player.sleep_until_end();
-        Ok(())
+        let sink = rodio::Sink::connect_new(&handle.mixer());
+        sink.append(src);
+        sink.sleep_until_end();
     };
 
     match event {
-        // Short mid-pitch beep — "starting"
-        SoundEvent::SyncStart => play_tone(660.0, 180, 0.4)?,
-        // Two rising tones — "done"
+        SoundEvent::SyncStart => play_tone(660.0, 180, 0.4),
         SoundEvent::SyncDone => {
-            play_tone(523.0, 120, 0.4)?;
-            play_tone(784.0, 200, 0.4)?;
+            play_tone(523.0, 120, 0.4);
+            play_tone(784.0, 200, 0.4);
         }
-        // High then low — "error"
         SoundEvent::SyncError => {
-            play_tone(440.0, 120, 0.4)?;
-            play_tone(220.0, 220, 0.4)?;
+            play_tone(440.0, 120, 0.4);
+            play_tone(220.0, 220, 0.4);
         }
     }
     Ok(())
