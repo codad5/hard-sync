@@ -1,0 +1,22 @@
+[package]
+name = "hard-sync-core"
+version = "1.0.0"
+edition = "2024"
+description = "Core library for hard-sync: file sync engine, drive detection, config, and watch mode."
+license = "MIT"
+repository = "https://github.com/codad5/hard-sync-cli"
+keywords = ["sync", "backup", "drive", "files", "cli"]
+categories = ["filesystem", "command-line-utilities"]
+
+[dependencies]
+chrono = { version = "0.4.44", features = ["serde"] }
+dirs = "6.0.0"
+notify = "8.2.0"
+regex = "1.12.3"
+rodio = "0.22.2"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+sha2 = "0.10.9"
+sysinfo = "0.38.3"
+walkdir = "2.5.0"
+windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
