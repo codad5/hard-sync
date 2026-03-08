@@ -1563,7 +1563,7 @@ dependencies = [
 
 [[package]]
 name = "hard-sync-core"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "chrono",
  "dirs",
@@ -1625,7 +1625,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hsync"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "auto-launch",
  "chrono",
@@ -1637,7 +1637,7 @@ dependencies = [
 
 [[package]]
 name = "hsync-ui"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "chrono",
  "dirs",
