@@ -59,7 +59,8 @@ fn play_default_async(event: SoundEvent) {
 fn play_default_blocking(event: SoundEvent) -> Result<(), Box<dyn std::error::Error>> {
     use rodio::source::{SineWave, Source};
 
-    let handle = rodio::DeviceSinkBuilder::open_default_sink()?;
+    let mut handle = rodio::DeviceSinkBuilder::open_default_sink()?;
+    handle.log_on_drop(false); // we manage lifetime intentionally; suppress the warning
 
     // mixer().add() accepts any Source; we sleep the known duration to block
     let play_tone = |freq: f32, ms: u64, vol: f32| {

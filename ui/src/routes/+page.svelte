@@ -96,10 +96,14 @@
     try {
       if (statuses[name]?.running) {
         await invoke("cmd_stop_watcher", { name });
+        await refreshStatuses();
       } else {
         await invoke("cmd_start_watcher", { name });
+        // Optimistically mark as running — the badge updates immediately
+        statuses = { ...statuses, [name]: { name, running: true, pid: null } };
+        // Then refresh after a short delay to pick up the real PID from the daemon
+        setTimeout(async () => { await refreshStatuses(); }, 800);
       }
-      await refreshStatuses();
     } catch (e) {
       error = String(e);
     }
