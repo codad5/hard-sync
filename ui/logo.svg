@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1e3a5f"/>
+      <stop offset="1" stop-color="#0c1220"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- Sync arc 1: clockwise from lower-left to upper-right (right half of circle) -->
+  <path d="M 126 331 A 150 150 0 1 1 352 141"
+        stroke="#3b82f6" stroke-width="48" stroke-linecap="round"/>
+  <!-- Arrow head at upper-right end, pointing clockwise (down-right) -->
+  <polyline points="293,115 356,140 330,203"
+            stroke="#3b82f6" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Sync arc 2: clockwise from upper-right to lower-left (left half of circle) -->
+  <path d="M 386 181 A 150 150 0 1 1 160 371"
+        stroke="#60a5fa" stroke-width="48" stroke-linecap="round"/>
+  <!-- Arrow head at lower-left end, pointing clockwise (up-left) -->
+  <polyline points="219,397 156,372 182,309"
+            stroke="#60a5fa" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

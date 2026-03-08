@@ -2,3 +2,6 @@
 .hard-sync
 hard-sync.log
 test-data*
+ui/node_modules/
+ui/.svelte-kit/
+ui/build/

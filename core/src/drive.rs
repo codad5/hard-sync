@@ -6,6 +6,7 @@ use crate::config::DriveId;
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ConnectedDrive {
     pub name: String,
     pub mount_point: PathBuf,

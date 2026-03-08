@@ -8,6 +8,8 @@ mod list;
 mod remove;
 mod trash;
 mod config;
+mod daemon;
+mod autostart;
 
 use init::init_callback;
 use sync::sync_callback;
@@ -16,6 +18,8 @@ use list::{list_callback, drives_callback};
 use remove::remove_callback;
 use trash::{trash_list_callback, trash_clear_callback};
 use config::{config_path_callback, config_reset_callback};
+use daemon::{watch_list_callback, watch_attach_callback, watch_stop_callback};
+use autostart::{autostart_enable_callback, autostart_disable_callback, autostart_list_callback};
 
 fn set_source_callback(data: &fli::command::FliCallbackData) {
     use colored::Colorize;
@@ -57,10 +61,26 @@ fn main() {
     sync.add_option("verify", "Use SHA256 checksum comparison instead of mtime+size", "-v", "--verify", ValueTypes::OptionalSingle(Some(Value::Bool(false))));
     sync.set_callback(sync_callback);
 
-    // hsync watch
+    // hsync watch  (foreground or --detach background)
     let watch = app.command("watch", "Auto-sync when drive is detected and files change").unwrap();
     watch.add_option("name", "Name of the pair to watch", "-n", "--name", ValueTypes::RequiredSingle(Value::Str(String::new())));
+    watch.add_option("detach", "Run in the background (write PID + log file)", "-d", "--detach", ValueTypes::OptionalSingle(Some(Value::Bool(false))));
     watch.set_callback(watch_callback);
+
+    // hsync watch list
+    watch.subcommand("list", "Show all running background watchers")
+        .set_callback(watch_list_callback);
+
+    // hsync watch attach
+    watch.subcommand("attach", "Tail the log of a running background watcher")
+        .add_option("name", "Pair name", "-n", "--name", ValueTypes::RequiredSingle(Value::Str(String::new())))
+        .set_callback(watch_attach_callback);
+
+    // hsync watch stop
+    watch.subcommand("stop", "Stop a background watcher")
+        .add_option("name", "Pair name", "-n", "--name", ValueTypes::OptionalSingle(None))
+        .add_option("all", "Stop all running background watchers", "-a", "--all", ValueTypes::OptionalSingle(Some(Value::Bool(false))))
+        .set_callback(watch_stop_callback);
 
     // hsync set-source
     let set_source = app.command("set-source", "Flip which side is the source of truth").unwrap();
@@ -105,6 +125,23 @@ fn main() {
         .add_option("name", "Pair name", "-n", "--name", ValueTypes::OptionalSingle(None))
         .add_option("all", "Clear trash for all pairs", "-a", "--all", ValueTypes::OptionalSingle(Some(Value::Bool(false))))
         .set_callback(trash_clear_callback);
+
+    // hsync autostart
+    let autostart = app.command("autostart", "Manage auto-launch of watchers on login").unwrap();
+
+    // hsync autostart enable
+    autostart.subcommand("enable", "Register a watcher to start automatically on login")
+        .add_option("name", "Pair name", "-n", "--name", ValueTypes::RequiredSingle(Value::Str(String::new())))
+        .set_callback(autostart_enable_callback);
+
+    // hsync autostart disable
+    autostart.subcommand("disable", "Remove a watcher from login autostart")
+        .add_option("name", "Pair name", "-n", "--name", ValueTypes::RequiredSingle(Value::Str(String::new())))
+        .set_callback(autostart_disable_callback);
+
+    // hsync autostart list
+    autostart.subcommand("list", "Show autostart status for all pairs")
+        .set_callback(autostart_list_callback);
 
     app.run();
 }
