@@ -236,16 +236,83 @@ Config is stored at `~/.config/hard-sync/config.json`. All settings are managed 
 
 ## Crates
 
-| Crate | Role | Published |
-|-------|------|-----------|
-| [`hard-sync-core`](https://crates.io/crates/hard-sync-core) | Library — all sync logic, drive detection, config, watcher | ✅ crates.io |
-| [`hard-sync-cli`](https://crates.io/crates/hard-sync-cli) (`hsync`) | Binary — thin CLI wrapper over core | ✅ crates.io |
+| Crate | Role |
+|-------|------|
+| [`hard-sync-core`](https://crates.io/crates/hard-sync-core) | Library — all sync logic, drive detection, config, watcher |
+| [`hard-sync-cli`](https://crates.io/crates/hard-sync-cli) (`hsync`) | Binary — thin CLI wrapper over core |
 
-If you want to build your own frontend (GUI, TUI, daemon), depend on `hard-sync-core` directly:
+Both are published on [crates.io](https://crates.io).
+
+---
+
+## Using `hard-sync-core` as a library
+
+If you want to build your own frontend (GUI, TUI, daemon, or editor plugin), you can depend on `hard-sync-core` directly. The CLI and the desktop app are both thin wrappers over it.
 
 ```toml
 [dependencies]
 hard-sync-core = "0.2"
+```
+
+### What it exposes
+
+**Config** — manage named sync pairs stored in `~/.config/hard-sync/config.json`:
+
+```rust
+use hard_sync_core::{add_pair, list_pairs, get_pair, remove_pair, PairConfig, SourceSide};
+```
+
+**Sync engine** — one-shot sync with full report:
+
+```rust
+use hard_sync_core::{sync_pair, SyncOptions, SyncReport, SyncOutcome};
+
+let opts = SyncOptions { dry_run: false, verify: false };
+let report = sync_pair(&pair_config, &opts)?;
+println!("{} copied, {} updated, {} errors", report.copied, report.updated, report.errors.len());
+```
+
+**Drive detection** — find drives by UUID/label regardless of mount path:
+
+```rust
+use hard_sync_core::{list_connected_drives, find_mounted_drive, get_drive_id, ConnectedDrive};
+
+let drives = list_connected_drives();            // all currently mounted drives
+let drive = find_mounted_drive(&pair.drive_id); // find the specific drive for a pair
+```
+
+**Watcher** — watch for file changes or drive plug-in events:
+
+```rust
+use hard_sync_core::{watch_pair, WatchEvent, WatchHandle};
+
+let handle = watch_pair(&pair_config, move |event| {
+    match event {
+        WatchEvent::SyncCompleted(report) => { /* ... */ }
+        WatchEvent::DriveConnected          => { /* ... */ }
+        WatchEvent::DriveDisconnected       => { /* ... */ }
+        WatchEvent::Error(e)                => { /* ... */ }
+    }
+})?;
+
+// handle.stop() to stop watching
+```
+
+**Sounds** — play notification sounds (opt-in, paths set per pair in config):
+
+```rust
+use hard_sync_core::{play_event_sound, SoundEvent};
+
+play_event_sound(&pair_config.sounds, SoundEvent::SyncDone);
+```
+
+**Trash** — inspect and clear per-pair trash:
+
+```rust
+use hard_sync_core::{list_trash, clear_trash};
+
+let entries = list_trash(&pair_config)?;
+clear_trash(&pair_config)?;
 ```
 
 ---
