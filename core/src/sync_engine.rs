@@ -17,11 +17,14 @@ pub struct SyncOptions {
     pub verify: bool,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SyncError {
     pub path: String,
     pub message: String,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum SyncOutcome {
     Copied,
     Updated,
@@ -31,11 +34,13 @@ pub enum SyncOutcome {
     Ignored,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SyncOperation {
     pub rel_path: String,
     pub outcome: SyncOutcome,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SyncReport {
     pub copied: usize,
     pub updated: usize,
