@@ -1,10 +1,12 @@
 use std::path::{Path, PathBuf};
 use std::thread;
+use std::time::Duration;
 
 use crate::config::SoundConfig;
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
+#[derive(Clone, Copy)]
 pub enum SoundEvent {
     SyncStart,
     SyncDone,
@@ -13,40 +15,73 @@ pub enum SoundEvent {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-/// Play the configured sound for a given event, if one is set.
+/// Play the configured sound for a given event.
+/// Falls back to a synthesized tone when no custom path is configured.
 /// Playback runs on a background thread — this call returns immediately.
-/// Errors are silently ignored (sound is optional, never blocks sync).
+/// Audio errors are silently ignored (sound never blocks sync).
 pub fn play_event_sound(config: &SoundConfig, event: SoundEvent) {
     let path = match event {
         SoundEvent::SyncStart => config.sync_start.as_ref(),
-        SoundEvent::SyncDone => config.sync_done.as_ref(),
+        SoundEvent::SyncDone  => config.sync_done.as_ref(),
         SoundEvent::SyncError => config.sync_error.as_ref(),
     };
 
-    if let Some(p) = path {
-        play_async(p.clone());
+    match path {
+        Some(p) => play_file_async(p.clone()),
+        None    => play_default_async(event),
     }
 }
 
-// ── Internal ──────────────────────────────────────────────────────────────────
+// ── Internal — file playback ──────────────────────────────────────────────────
 
-/// Spawn a thread to play the file. The thread owns the OutputStream so it
-/// stays alive for the full duration of playback.
-fn play_async(path: PathBuf) {
+fn play_file_async(path: PathBuf) {
     thread::spawn(move || {
-        let _ = play_blocking(&path);
+        let _ = play_file_blocking(&path);
     });
 }
 
-fn play_blocking(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    // DeviceSinkBuilder opens the OS audio device. Must stay alive during playback.
+fn play_file_blocking(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let handle = rodio::DeviceSinkBuilder::open_default_sink()?;
+    let file   = std::fs::File::open(path)?;
+    let player = rodio::play(&handle.mixer(), std::io::BufReader::new(file))?;
+    player.sleep_until_end();
+    Ok(())
+}
+
+// ── Internal — synthesized default tones ─────────────────────────────────────
+
+fn play_default_async(event: SoundEvent) {
+    thread::spawn(move || {
+        let _ = play_default_blocking(event);
+    });
+}
+
+fn play_default_blocking(event: SoundEvent) -> Result<(), Box<dyn std::error::Error>> {
+    use rodio::source::{SineWave, Source};
+
     let handle = rodio::DeviceSinkBuilder::open_default_sink()?;
 
-    let file = std::fs::File::open(path)?;
-    // rodio::play queues the file on the device's mixer and returns a Player
-    let player = rodio::play(&handle.mixer(), std::io::BufReader::new(file))?;
+    // Helper: play a single tone and block until done
+    let play_tone = |freq: f32, ms: u64, vol: f32| -> Result<(), Box<dyn std::error::Error>> {
+        let src = SineWave::new(freq).take_duration(Duration::from_millis(ms)).amplify(vol);
+        let player = rodio::play(&handle.mixer(), src)?;
+        player.sleep_until_end();
+        Ok(())
+    };
 
-    // Block this thread until playback finishes. handle stays alive in scope.
-    player.sleep_until_end();
+    match event {
+        // Short mid-pitch beep — "starting"
+        SoundEvent::SyncStart => play_tone(660.0, 180, 0.4)?,
+        // Two rising tones — "done"
+        SoundEvent::SyncDone => {
+            play_tone(523.0, 120, 0.4)?;
+            play_tone(784.0, 200, 0.4)?;
+        }
+        // High then low — "error"
+        SoundEvent::SyncError => {
+            play_tone(440.0, 120, 0.4)?;
+            play_tone(220.0, 220, 0.4)?;
+        }
+    }
     Ok(())
 }

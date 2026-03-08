@@ -1,6 +1,6 @@
 use colored::Colorize;
 use fli::option_parser::{Value, ValueTypes};
-use hard_sync_core::{watch_pair, WatchEvent};
+use hard_sync_core::{get_pair, play_event_sound, watch_pair, SoundEvent, WatchEvent};
 
 use crate::daemon::spawn_detached;
 use crate::output::{print_err, print_sync_report, require_name};
@@ -33,6 +33,8 @@ pub fn watch_callback(data: &fli::command::FliCallbackData) {
     println!("Watching {}...", format!("\"{}\"", name).cyan().bold());
     println!("{}", "Press Ctrl+C to stop.\n".dimmed());
 
+    let sounds = get_pair(&name).map(|p| p.sounds).ok();
+
     let handle = match watch_pair(&name, move |event| {
         match event {
             WatchEvent::Watching => {
@@ -48,13 +50,21 @@ pub fn watch_callback(data: &fli::command::FliCallbackData) {
                 println!("  {} {}", chrono_now(), "Drive removed. Waiting...".yellow());
             }
             WatchEvent::SyncStarted => {
-                // silent — DriveDetected or file-change message already shown
+                if let Some(ref s) = sounds {
+                    play_event_sound(s, SoundEvent::SyncStart);
+                }
             }
             WatchEvent::SyncCompleted(report) => {
+                if let Some(ref s) = sounds {
+                    play_event_sound(s, SoundEvent::SyncDone);
+                }
                 print_sync_report(&report, false);
                 println!("{}", "  Watching for changes...".dimmed());
             }
             WatchEvent::SyncError(e) => {
+                if let Some(ref s) = sounds {
+                    play_event_sound(s, SoundEvent::SyncError);
+                }
                 eprintln!("  {} {} {}", chrono_now(), "Sync error:".bright_red(), e);
             }
         }

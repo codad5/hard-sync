@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use hard_sync_core::{
-    add_pair, get_drive_id, list_connected_drives, list_pairs, remove_pair, same_drive, set_source,
-    sync_pair, ConnectedDrive, DeleteBehavior, DriveId, PairConfig, SoundConfig, SourceSide,
-    SyncOptions, SyncReport,
+    add_pair, get_drive_id, get_pair, list_connected_drives, list_pairs, play_event_sound,
+    remove_pair, same_drive, set_source, sync_pair, ConnectedDrive, DeleteBehavior, DriveId,
+    PairConfig, SoundConfig, SoundEvent, SourceSide, SyncOptions, SyncReport,
 };
 use serde::{Deserialize, Serialize};
 
@@ -120,7 +120,24 @@ pub fn cmd_set_source(name: String, source: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn cmd_trigger_sync(name: String, dry_run: bool) -> Result<SyncReport, String> {
-    sync_pair(&name, SyncOptions { dry_run, verify: false })
+    let sounds = get_pair(&name).map(|p| p.sounds).ok();
+
+    if let Some(ref s) = sounds {
+        if !dry_run { play_event_sound(s, SoundEvent::SyncStart); }
+    }
+
+    let result = sync_pair(&name, SyncOptions { dry_run, verify: false });
+
+    if let Some(ref s) = sounds {
+        if !dry_run {
+            match &result {
+                Ok(_)  => play_event_sound(s, SoundEvent::SyncDone),
+                Err(_) => play_event_sound(s, SoundEvent::SyncError),
+            }
+        }
+    }
+
+    result
 }
 
 // ---------------------------------------------------------------------------
