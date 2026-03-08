@@ -16,7 +16,7 @@
 
 | | CLI (`hsync`) | Desktop app |
 |---|---|---|
-| Install | `cargo install hard-sync-cli` | Download installer from [Releases](https://github.com/codad5/hard-sync-cli/releases) |
+| Install | `cargo install hard-sync-cli` | Download installer from [Releases](https://github.com/codad5/hard-sync/releases) |
 | Use | Terminal commands | GUI window + system tray |
 | Watcher | `hsync watch --name backup` | Click **Watch** on a pair |
 | Background | `hsync watch --name backup --detach` | Runs in system tray |
@@ -40,7 +40,7 @@ The desktop app lives in the system tray. Left-click the tray icon to open the w
 - Add new pairs with folder picker dialogs
 - Remove pairs
 
-Download the latest installer from the [Releases](https://github.com/codad5/hard-sync-cli/releases) page (`.exe` for Windows, `.AppImage`/`.deb` for Linux, `.dmg` for macOS).
+Download the latest installer from the [Releases](https://github.com/codad5/hard-sync/releases) page (`.exe` for Windows, `.AppImage`/`.deb` for Linux, `.dmg` for macOS).
 
 ---
 
@@ -65,8 +65,8 @@ cargo install hard-sync-cli
 ### From source
 
 ```bash
-git clone https://github.com/codad5/hard-sync-cli
-cd hard-sync-cli
+git clone https://github.com/codad5/hard-sync
+cd hard-sync
 cargo install --path cli
 ```
 
@@ -339,7 +339,7 @@ clear_trash(&pair_config)?;
 | Notification sounds | ✅ | ✅ | ✅ |
 | Desktop app (Tauri) | ✅ | ✅ | ⚠️ untested |
 
-macOS builds should work but have not been tested. If you run into issues, please [open an issue](https://github.com/codad5/hard-sync-cli/issues).
+macOS builds should work but have not been tested. If you run into issues, please [open an issue](https://github.com/codad5/hard-sync/issues).
 
 ---
 
