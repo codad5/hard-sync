@@ -221,6 +221,22 @@ Rules:
 
 ---
 
+## Platform support
+
+| Feature | Windows | Linux | macOS |
+|---------|---------|-------|-------|
+| File sync | ✅ | ✅ | ✅ |
+| Drive detection (by UUID/label) | ✅ | ✅ | ✅ |
+| Watch mode | ✅ | ✅ | ✅ |
+| Background watcher (`--detach`) | ✅ | ✅ | ✅ |
+| Autostart on login | ✅ (registry) | ✅ (XDG) | ✅ (launchd) |
+| Notification sounds | ✅ | ✅ | ✅ |
+| Desktop GUI (Tauri) | ✅ | ✅ | ⚠️ untested |
+
+macOS builds should work but have not been tested. If you run into issues on macOS, please [open an issue](https://github.com/codad5/hard-sync-cli/issues).
+
+---
+
 ## Crates
 
 | Crate | Role |
