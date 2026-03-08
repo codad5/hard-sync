@@ -44,7 +44,7 @@ jobs:
       # ── CLI ────────────────────────────────────────────────────────────────
 
       - name: Build CLI
-        run: cargo build --release -p hard-sync-cli
+        run: cargo build --release -p hsync
 
       - name: Rename CLI binary
         shell: bash
