@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            cli_src: target/release/hsync.exe
+            cli_out: hsync-windows-x86_64.exe
+
+          - os: ubuntu-latest
+            cli_src: target/release/hsync
+            cli_out: hsync-linux-x86_64
+
+          - os: macos-latest
+            cli_src: target/release/hsync
+            cli_out: hsync-macos-x86_64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux system deps
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      # ── CLI ────────────────────────────────────────────────────────────────
+
+      - name: Build CLI
+        run: cargo build --release -p hard-sync-cli
+
+      - name: Rename CLI binary
+        shell: bash
+        run: cp "${{ matrix.cli_src }}" "${{ matrix.cli_out }}"
+
+      - name: Upload CLI binary to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.cli_out }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Desktop (Tauri) ────────────────────────────────────────────────────
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend deps
+        working-directory: ui
+        run: npm install
+
+      - name: Build and upload Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: ui
+          tagName: ${{ github.ref_name }}
+          releaseName: hard-sync ${{ github.ref_name }}
+          releaseDraft: false
+          prerelease: false

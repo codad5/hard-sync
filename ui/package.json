@@ -1,7 +1,7 @@
 {
-  "name": "ui",
-  "version": "0.1.0",
-  "description": "",
+  "name": "hard-sync",
+  "version": "0.2.0",
+  "description": "Desktop GUI for hard-sync — zero-interaction file sync for removable drives",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
