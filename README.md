@@ -4,12 +4,43 @@
   <img src="ui/logo.svg" alt="hard-sync logo" width="96" height="96" />
 </p>
 
-A fast, zero-interaction file sync tool for removable drives. Set up a pair once — plug in your drive, hear the start sound, hear the done sound, unplug. No typing required after setup.
+<p align="center">
+  A fast, zero-interaction file sync tool for removable drives.<br/>
+  Set up a pair once — plug in your drive, hear the start sound, hear the done sound, unplug.<br/>
+  <strong>No typing required after setup.</strong>
+</p>
 
-```
-hsync init --name backup --base ~/projects --target /media/usb/projects
-hsync watch --name backup
-```
+---
+
+## Two ways to use it
+
+| | CLI (`hsync`) | Desktop app |
+|---|---|---|
+| Install | `cargo install hard-sync-cli` | Download installer from [Releases](https://github.com/codad5/hard-sync-cli/releases) |
+| Use | Terminal commands | GUI window + system tray |
+| Watcher | `hsync watch --name backup` | Click **Watch** on a pair |
+| Background | `hsync watch --name backup --detach` | Runs in system tray |
+| Autostart | `hsync autostart enable --name backup` | Planned |
+
+Both are built on `hard-sync-core` — the same sync engine, drive detection, and config file.
+
+---
+
+## Desktop app
+
+<p align="center">
+  <img src="docs/desktop.png" alt="hard-sync desktop app" width="700" />
+</p>
+
+The desktop app lives in the system tray. Left-click the tray icon to open the window. From there you can:
+
+- View all configured sync pairs and their watcher status
+- Trigger a one-shot sync with **Sync now**
+- Start or stop a watcher with **Watch** / **Stop**
+- Add new pairs with folder picker dialogs
+- Remove pairs
+
+Download the latest installer from the [Releases](https://github.com/codad5/hard-sync-cli/releases) page (`.exe` for Windows, `.AppImage`/`.deb` for Linux, `.dmg` for macOS).
 
 ---
 
@@ -23,7 +54,7 @@ In watch mode:
 
 ---
 
-## Install
+## CLI install
 
 ### From crates.io
 
@@ -47,7 +78,7 @@ hsync --help
 
 ---
 
-## Commands
+## CLI commands
 
 ### `hsync init` — Set up a new sync pair
 
@@ -193,7 +224,7 @@ hsync trash clear --all
 
 ## Config
 
-Config is stored at `~/.config/hard-sync/config.json`. You should not need to edit it directly — all settings are managed through commands.
+Config is stored at `~/.config/hard-sync/config.json`. All settings are managed through commands — you should not need to edit it directly.
 
 **Ignore patterns:** Add a `.hardsyncignore` file to your base directory (gitignore syntax). Patterns can also be added per-pair in config. Built-in ignores: `.hard-sync-trash/`, `.hardsyncignore`.
 
@@ -203,25 +234,19 @@ Config is stored at `~/.config/hard-sync/config.json`. You should not need to ed
 
 ---
 
-## Roadmap
+## Crates
 
-### SSH sync (planned)
+| Crate | Role | Published |
+|-------|------|-----------|
+| [`hard-sync-core`](https://crates.io/crates/hard-sync-core) | Library — all sync logic, drive detection, config, watcher | ✅ crates.io |
+| [`hard-sync-cli`](https://crates.io/crates/hard-sync-cli) (`hsync`) | Binary — thin CLI wrapper over core | ✅ crates.io |
 
-Support for syncing with remote paths over SSH, so you can keep a local folder in sync with a cloud server or NAS:
+If you want to build your own frontend (GUI, TUI, daemon), depend on `hard-sync-core` directly:
 
-```bash
-# One-time: store SSH connection details
-hsync ssh add --name myserver --host user@192.168.1.10 --key ~/.ssh/id_rsa
-
-# Init with ssh:// prefix on either side (not both)
-hsync init --name cloud-backup --base ~/projects --target ssh://myserver/home/user/backup
+```toml
+[dependencies]
+hard-sync-core = "0.2"
 ```
-
-Rules:
-- Only one side of a pair can be an SSH path — not both
-- The SSH connection is set up once via `hsync ssh add` and referenced by name
-- Works with `hsync sync` and `hsync watch` like any other pair
-- Watch mode will poll connectivity instead of drive detection
 
 ---
 
@@ -235,20 +260,22 @@ Rules:
 | Background watcher (`--detach`) | ✅ | ✅ | ✅ |
 | Autostart on login | ✅ (registry) | ✅ (XDG) | ✅ (launchd) |
 | Notification sounds | ✅ | ✅ | ✅ |
-| Desktop GUI (Tauri) | ✅ | ✅ | ⚠️ untested |
+| Desktop app (Tauri) | ✅ | ✅ | ⚠️ untested |
 
-macOS builds should work but have not been tested. If you run into issues on macOS, please [open an issue](https://github.com/codad5/hard-sync-cli/issues).
+macOS builds should work but have not been tested. If you run into issues, please [open an issue](https://github.com/codad5/hard-sync-cli/issues).
 
 ---
 
-## Crates
+## Roadmap
 
-| Crate | Role |
-|-------|------|
-| `hard-sync-core` | Library — all sync logic, drive detection, config, watcher |
-| `hard-sync-cli` (`hsync`) | Binary — thin CLI wrapper over core |
+### SSH sync (planned)
 
-Both are published on [crates.io](https://crates.io). If you want to build your own frontend (GUI, TUI, daemon), depend on `hard-sync-core` directly.
+Support for syncing with remote paths over SSH:
+
+```bash
+hsync ssh add --name myserver --host user@192.168.1.10 --key ~/.ssh/id_rsa
+hsync init --name cloud-backup --base ~/projects --target ssh://myserver/home/user/backup
+```
 
 ---
 
