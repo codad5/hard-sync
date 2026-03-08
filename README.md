@@ -251,7 +251,7 @@ If you want to build your own frontend (GUI, TUI, daemon, or editor plugin), you
 
 ```toml
 [dependencies]
-hard-sync-core = "0.2"
+hard-sync-core = "1.0"
 ```
 
 ### What it exposes
