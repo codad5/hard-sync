@@ -16,7 +16,7 @@ jobs:
             cli_src: target/release/hsync.exe
             cli_out: hsync-windows-x86_64.exe
 
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             cli_src: target/release/hsync
             cli_out: hsync-linux-x86_64
 
@@ -34,7 +34,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Linux system deps
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
