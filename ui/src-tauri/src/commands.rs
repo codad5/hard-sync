@@ -3,8 +3,9 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use hard_sync_core::{
-    list_connected_drives, list_pairs, remove_pair, set_source, sync_pair, ConnectedDrive,
-    PairConfig, SourceSide, SyncOptions, SyncReport,
+    add_pair, get_drive_id, list_connected_drives, list_pairs, remove_pair, same_drive, set_source,
+    sync_pair, ConnectedDrive, DeleteBehavior, DriveId, PairConfig, SoundConfig, SourceSide,
+    SyncOptions, SyncReport,
 };
 use serde::{Deserialize, Serialize};
 
@@ -53,6 +54,49 @@ fn is_alive(pid: u32) -> bool {
 #[tauri::command]
 pub fn cmd_list_pairs() -> Result<Vec<PairConfig>, String> {
     list_pairs()
+}
+
+#[tauri::command]
+pub fn cmd_add_pair(
+    name: String,
+    base: String,
+    target: String,
+    source: String,
+) -> Result<PairConfig, String> {
+    let base_path = std::path::Path::new(&base);
+    let target_path = std::path::Path::new(&target);
+
+    let source_side = match source.as_str() {
+        "target" => SourceSide::Target,
+        _ => SourceSide::Base,
+    };
+
+    // Detect whether the two paths are on the same drive
+    let drive_id = if same_drive(base_path, target_path) {
+        None
+    } else {
+        get_drive_id(target_path)
+    };
+
+    let pair = PairConfig {
+        name: name.clone(),
+        base: base_path.to_path_buf(),
+        target: target_path.to_path_buf(),
+        source: source_side,
+        drive_id,
+        ignore: vec![
+            "node_modules".into(),
+            ".git".into(),
+            "target".into(),
+            "dist".into(),
+        ],
+        delete_behavior: DeleteBehavior::Trash,
+        sounds: SoundConfig { sync_start: None, sync_done: None, sync_error: None },
+        created_at: chrono::Utc::now(),
+    };
+
+    add_pair(pair.clone())?;
+    Ok(pair)
 }
 
 #[tauri::command]

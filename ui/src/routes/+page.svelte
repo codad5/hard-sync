@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
+  import AddPair from "$lib/AddPair.svelte";
 
   // ── Types (mirror Rust structs) ─────────────────────────────────────────────
 
@@ -45,6 +46,7 @@
   let lastReport = $state<Record<string, SyncReport>>({});
   let loading = $state(true);
   let error = $state<string | null>(null);
+  let showAddForm = $state(false);
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -130,15 +132,31 @@
     <!-- Header -->
     <header class="flex items-center justify-between mb-6">
       <h1 class="text-lg font-semibold text-white">hard-sync</h1>
-      <button
-        onclick={loadPairs}
-        class="text-[#888] hover:text-white hover:bg-[#2a2a2a] rounded px-2 py-1 text-xl transition-colors"
-        title="Refresh"
-        aria-label="Refresh"
-      >
-        ↻
-      </button>
+      <div class="flex gap-2 items-center">
+        <button
+          onclick={() => (showAddForm = !showAddForm)}
+          class="text-sm px-3 py-1.5 rounded bg-blue-700 text-white hover:bg-blue-600 transition-colors font-medium"
+        >
+          + Add pair
+        </button>
+        <button
+          onclick={loadPairs}
+          class="text-[#888] hover:text-white hover:bg-[#2a2a2a] rounded px-2 py-1 text-xl transition-colors"
+          title="Refresh"
+          aria-label="Refresh"
+        >
+          ↻
+        </button>
+      </div>
     </header>
+
+    <!-- Add pair form (shown inline when + button is clicked) -->
+    {#if showAddForm}
+      <AddPair
+        onAdded={() => { showAddForm = false; loadPairs(); }}
+        onCancel={() => (showAddForm = false)}
+      />
+    {/if}
 
     <!-- Error banner -->
     {#if error}

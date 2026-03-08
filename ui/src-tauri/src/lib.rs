@@ -43,6 +43,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::cmd_list_pairs,
+            commands::cmd_add_pair,
             commands::cmd_remove_pair,
             commands::cmd_set_source,
             commands::cmd_trigger_sync,
