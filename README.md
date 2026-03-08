@@ -230,7 +230,17 @@ Config is stored at `~/.config/hard-sync/config.json`. All settings are managed 
 
 **Delete behavior** (per pair, edit config directly): `"trash"` (default), `"delete"`, or `"ignore"`.
 
-**Notification sounds** (per pair, edit config directly): set `sounds.sync_start`, `sounds.sync_done`, or `sounds.sync_error` to a path to a WAV or MP3 file. Null by default.
+**Notification sounds** — built-in tones play automatically on every sync (start, done, error). No setup required. To use your own audio files instead, edit the pair in `config.json`:
+
+```json
+"sounds": {
+  "sync_start": "C:\\sounds\\beep.wav",
+  "sync_done":  "C:\\sounds\\chime.wav",
+  "sync_error": null
+}
+```
+
+Set any field to `null` to keep the built-in tone for that event. Supported formats: WAV, MP3, OGG, FLAC.
 
 ---
 
