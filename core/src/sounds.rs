@@ -57,14 +57,14 @@ fn play_default_async(event: SoundEvent) {
 }
 
 fn play_default_blocking(event: SoundEvent) -> Result<(), Box<dyn std::error::Error>> {
-    use rodio::source::{SineWave, Source};
+    use rodio::{Sink, source::{SineWave, Source}};
 
     let handle = rodio::DeviceSinkBuilder::open_default_sink()?;
 
     // Sink::append accepts any Source — no Read+Seek required
     let play_tone = |freq: f32, ms: u64, vol: f32| {
         let src = SineWave::new(freq).take_duration(Duration::from_millis(ms)).amplify(vol);
-        let sink = rodio::Sink::connect_new(&handle.mixer());
+        let sink = Sink::connect_new(&handle.mixer());
         sink.append(src);
         sink.sleep_until_end();
     };
