@@ -1,5 +1,9 @@
 # hard-sync
 
+<p align="center">
+  <img src="ui/logo.svg" alt="hard-sync logo" width="96" height="96" />
+</p>
+
 A fast, zero-interaction file sync tool for removable drives. Set up a pair once — plug in your drive, hear the start sound, hear the done sound, unplug. No typing required after setup.
 
 ```

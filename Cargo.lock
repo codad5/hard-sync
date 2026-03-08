@@ -1639,6 +1639,7 @@ dependencies = [
 name = "hsync-ui"
 version = "0.2.0"
 dependencies = [
+ "chrono",
  "dirs",
  "hard-sync-core",
  "serde",
