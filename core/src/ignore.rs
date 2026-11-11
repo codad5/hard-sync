@@ -5,6 +5,35 @@ use crate::config::PairConfig;
 // Built-in patterns always ignored — regardless of user config
 const BUILTIN: &[&str] = &[".hard-sync-trash", ".hard_sync_cli", ".hardsyncignore"];
 
+/// Files and folders that operating systems create on their own (Finder view
+/// settings, search indexes, recycle bins). They must never be copied, and
+/// never trashed from a drive — especially at a drive root, where macOS and
+/// Windows own them. Matched against any path component, case-insensitively.
+const OS_METADATA: &[&str] = &[
+    // macOS
+    ".DS_Store",
+    ".Spotlight-V100",
+    ".fseventsd",
+    ".Trashes",
+    ".TemporaryItems",
+    ".DocumentRevisions-V100",
+    ".VolumeIcon.icns",
+    ".apdisk",
+    // Windows
+    "System Volume Information",
+    "$RECYCLE.BIN",
+    "Thumbs.db",
+    "desktop.ini",
+];
+
+/// True if a single path component is OS-generated metadata.
+/// Also covers macOS AppleDouble files (`._name`), which Finder writes next to
+/// every file it copies onto a non-Mac filesystem (exFAT, FAT32, NTFS).
+fn is_os_metadata(component: &str) -> bool {
+    component.starts_with("._")
+        || OS_METADATA.iter().any(|m| m.eq_ignore_ascii_case(component))
+}
+
 pub struct IgnoreList {
     patterns: Vec<String>,
 }
@@ -45,6 +74,9 @@ impl IgnoreList {
     ///   (e.g. "src/generated" ignores "src/generated/foo.rs")
     pub fn is_ignored(&self, rel: &str) -> bool {
         let components: Vec<&str> = rel.split('/').collect();
+        if components.iter().any(|c| is_os_metadata(c)) {
+            return true;
+        }
         for pattern in &self.patterns {
             if pattern.contains('/') {
                 // Full path prefix match
@@ -106,5 +138,29 @@ mod tests {
         assert!(l.is_ignored(".hard-sync-trash/foo.txt"));
         assert!(l.is_ignored(".hard_sync_cli/tracker.json"));
         assert!(l.is_ignored(".hardsyncignore"));
+    }
+
+    #[test]
+    fn os_metadata_always_ignored() {
+        let l = list(&[]);
+        // macOS
+        assert!(l.is_ignored(".DS_Store"));
+        assert!(l.is_ignored("photos/.DS_Store"));
+        assert!(l.is_ignored(".Spotlight-V100/Store-V2/db"));
+        assert!(l.is_ignored(".fseventsd/0000001"));
+        assert!(l.is_ignored(".Trashes/501/old.txt"));
+        assert!(l.is_ignored("._a.txt"));
+        assert!(l.is_ignored("photos/._IMG_0001.jpg"));
+        // Windows, any casing
+        assert!(l.is_ignored("System Volume Information/IndexerVolumeGuid"));
+        assert!(l.is_ignored("$RECYCLE.BIN/S-1-5-21/desktop.ini"));
+        assert!(l.is_ignored("$Recycle.Bin/x"));
+        assert!(l.is_ignored("photos/Thumbs.db"));
+        assert!(l.is_ignored("photos/thumbs.db"));
+        // Real files that only look similar are kept
+        assert!(!l.is_ignored("DS_Store.txt"));
+        assert!(!l.is_ignored("notes/_draft.md"));
+        assert!(!l.is_ignored("my.Trashes.txt"));
+        assert!(!l.is_ignored("a._b.txt"));
     }
 }
