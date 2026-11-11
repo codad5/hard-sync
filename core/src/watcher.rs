@@ -8,6 +8,7 @@ use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
 use crate::config::{PairConfig, SourceSide};
 use crate::drive::find_mounted_drive;
 use crate::sync_engine::{sync_pair, SyncOptions, SyncReport};
+use crate::watch_registry::WatchLock;
 
 // ── Timing constants ───────────────────────────────────────────────────────────
 
@@ -69,15 +70,20 @@ enum Msg {
 
 /// Start watching a named pair. Returns a `WatchHandle` immediately.
 /// The `on_event` callback is called from the watch thread for each event.
+///
+/// Fails if the pair is already being watched — by this process or another
+/// (`hsync watch`, the desktop app). The claim is released when the loop ends.
 pub fn watch_pair(
     name: &str,
     on_event: impl Fn(WatchEvent) + Send + 'static,
 ) -> Result<WatchHandle, String> {
     let pair = crate::config::get_pair(name)?;
+    let lock = WatchLock::acquire(name)?;
     let (stop_tx, stop_rx) = mpsc::channel::<()>();
     let name = name.to_string();
 
     let thread = thread::spawn(move || {
+        let _lock = lock; // held for the lifetime of the watch loop
         run_watch_loop(name, pair, on_event, stop_rx);
     });
 

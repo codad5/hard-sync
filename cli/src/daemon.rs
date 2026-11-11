@@ -8,69 +8,19 @@ use colored::Colorize;
 use crate::output::{print_err, require_name};
 
 // ---------------------------------------------------------------------------
-// Data directory helpers
+// Watcher state lives in core (shared with the desktop app)
 // ---------------------------------------------------------------------------
 
-fn data_dir() -> Result<PathBuf, String> {
-    dirs::data_dir()
-        .map(|d| d.join("hsync"))
-        .ok_or_else(|| "Cannot determine data directory".to_string())
-}
+use hard_sync_core::{is_process_alive, watcher_log_file, watcher_pid_file, watcher_pids_dir};
 
-fn pids_dir() -> Result<PathBuf, String> {
-    let dir = data_dir()?.join("pids");
-    fs::create_dir_all(&dir).map_err(|e| format!("Cannot create pids dir: {}", e))?;
-    Ok(dir)
-}
-
-fn logs_dir() -> Result<PathBuf, String> {
-    let dir = data_dir()?.join("logs");
-    fs::create_dir_all(&dir).map_err(|e| format!("Cannot create logs dir: {}", e))?;
-    Ok(dir)
-}
-
-pub fn pid_file(name: &str) -> Result<PathBuf, String> {
-    Ok(pids_dir()?.join(format!("{}.pid", name)))
-}
-
-pub fn log_file(name: &str) -> Result<PathBuf, String> {
-    Ok(logs_dir()?.join(format!("{}.log", name)))
-}
-
-// ---------------------------------------------------------------------------
-// Process helpers
-// ---------------------------------------------------------------------------
+fn pids_dir() -> Result<PathBuf, String> { watcher_pids_dir() }
+fn pid_file(name: &str) -> Result<PathBuf, String> { watcher_pid_file(name) }
+fn log_file(name: &str) -> Result<PathBuf, String> { watcher_log_file(name) }
+fn is_alive(pid: u32) -> bool { is_process_alive(pid) }
 
 fn read_pid(name: &str) -> Option<u32> {
     let path = pid_file(name).ok()?;
     fs::read_to_string(&path).ok()?.trim().parse().ok()
-}
-
-fn is_alive(pid: u32) -> bool {
-    #[cfg(unix)]
-    {
-        Command::new("kill")
-            .args(["-0", &pid.to_string()])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false)
-    }
-    #[cfg(windows)]
-    {
-        // Use exact CSV match: tasklist /FO CSV produces "name","pid",...
-        // We search for ,"<pid>", to avoid partial matches (e.g. 7 inside 7532).
-        let out = Command::new("tasklist")
-            .args(["/FI", &format!("PID eq {}", pid), "/NH", "/FO", "CSV"])
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .output()
-            .ok();
-        let needle = format!(",\"{}\"", pid);
-        out.map(|o| String::from_utf8_lossy(&o.stdout).contains(needle.as_str()))
-            .unwrap_or(false)
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -78,6 +28,12 @@ fn is_alive(pid: u32) -> bool {
 // ---------------------------------------------------------------------------
 
 pub fn spawn_detached(name: &str) -> Result<u32, String> {
+    // Fail fast in the parent; the child claims the pair itself (watch_pair
+    // writes its PID file), so we never overwrite another watcher's PID file.
+    if let Some(pid) = hard_sync_core::watcher_pid(name) {
+        return Err(format!("\"{}\" is already being watched (PID {}).", name, pid));
+    }
+
     let exe = std::env::current_exe()
         .map_err(|e| format!("Cannot get current exe path: {}", e))?;
 
@@ -103,12 +59,7 @@ pub fn spawn_detached(name: &str) -> Result<u32, String> {
     }
 
     let child = cmd.spawn().map_err(|e| format!("Failed to spawn watcher: {}", e))?;
-    let pid = child.id();
-
-    fs::write(pid_file(name)?, pid.to_string())
-        .map_err(|e| format!("Failed to write PID file: {}", e))?;
-
-    Ok(pid)
+    Ok(child.id())
 }
 
 // ---------------------------------------------------------------------------

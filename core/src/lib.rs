@@ -4,6 +4,7 @@ pub mod drive;
 pub mod ignore;
 pub mod sounds;
 pub mod sync_engine;
+pub mod watch_registry;
 pub mod watcher;
 
 // Access checks
@@ -24,6 +25,10 @@ pub use drive::{drive_matches_connected, find_mounted_drive, get_drive_id, list_
 
 // Watch API
 pub use watcher::{watch_pair, WatchEvent, WatchHandle};
+pub use watch_registry::{
+    is_process_alive, watcher_data_dir, watcher_log_file, watcher_pid, watcher_pid_file,
+    watcher_pids_dir, WatchLock,
+};
 
 // Sync API
 pub use sync_engine::{
