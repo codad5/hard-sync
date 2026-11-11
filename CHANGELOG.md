@@ -17,11 +17,14 @@ All notable changes to this project are documented here.
 - App: tray menu "Stop all watchers" — pauses syncing without quitting
 - App: closing the window keeps hard-sync running in the menu bar / tray; on macOS, clicking the Dock icon opens the window
 - A pair can only be watched by one watcher at a time (terminal, `--detach` or app); the second is refused with the PID of the first
+- App: macOS-style redesign — System Settings-style grouped list, Watch switch, add-pair sheet, light and dark mode following the system
+- App: on macOS the menu-bar icon is a template image, so it matches the other menu-bar icons in light and dark mode
 
 ### Fixed
 - App: removing a pair happened immediately, before you answered the "Remove pair?" question
 - App: Watch failed in installed builds because the installers don't include the `hsync` program it tried to start
 - `hsync watch --detach` could overwrite a running watcher's PID file when the pair was already watched
+- Background (`--detach`) watchers no longer write "Press Ctrl+C to stop" into their log (shown in the app); they log a timestamped start line instead
 
 ---
 

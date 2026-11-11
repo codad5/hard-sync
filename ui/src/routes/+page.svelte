@@ -199,178 +199,190 @@
   }
 </script>
 
-<div class="min-h-screen bg-[#1a1a1a] text-[#e8e8e8] p-5">
-  <div class="max-w-3xl mx-auto">
+<!--
+  Layout follows macOS System Settings: a unified toolbar the window can be
+  dragged by, then grouped "inset" lists with hairline separators.
+-->
+<div class="min-h-screen flex flex-col">
 
-    <!-- Header -->
-    <header class="flex items-center justify-between mb-6">
-      <h1 class="text-lg font-semibold text-white">hard-sync</h1>
-      <div class="flex gap-2 items-center">
-        <button
-          onclick={() => (showAddForm = !showAddForm)}
-          class="text-sm px-3 py-1.5 rounded bg-blue-700 text-white hover:bg-blue-600 transition-colors font-medium"
-        >
-          + Add pair
-        </button>
-        <button
-          onclick={loadPairs}
-          class="text-[#888] hover:text-white hover:bg-[#2a2a2a] rounded px-2 py-1 text-xl transition-colors"
-          title="Refresh"
-          aria-label="Refresh"
-        >
-          ↻
-        </button>
-      </div>
-    </header>
+  <!-- Toolbar (drag region). On macOS the traffic lights sit at its left. -->
+  <header
+    data-tauri-drag-region
+    class="toolbar sticky top-0 z-10 h-[52px] shrink-0 flex items-center gap-2 pr-3 bg-window/85 backdrop-blur-xl border-b border-separator"
+  >
+    <h1 data-tauri-drag-region class="text-[13px] font-semibold text-label">hard-sync</h1>
+    <div data-tauri-drag-region class="flex-1 h-full"></div>
+    <button class="icon-btn" onclick={loadPairs} title="Refresh" aria-label="Refresh">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>
+    </button>
+    <button class="icon-btn" onclick={() => (showAddForm = true)} title="Add pair" aria-label="Add pair">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+    </button>
+  </header>
 
-    <!-- Add pair form (shown inline when + button is clicked) -->
-    {#if showAddForm}
-      <AddPair
-        onAdded={() => { showAddForm = false; loadPairs(); }}
-        onCancel={() => (showAddForm = false)}
-      />
-    {/if}
+  <main class="flex-1 w-full max-w-[680px] mx-auto px-5 py-5">
 
-    <!-- Error banner -->
+    <!-- Page-level error (loading pairs, watcher start/stop) -->
     {#if error}
-      <div class="flex justify-between items-center bg-[#3a1a1a] border border-[#5a2a2a] text-red-400 rounded-md px-4 py-2.5 mb-4 text-sm">
-        <span>{error}</span>
-        <button onclick={() => (error = null)} class="ml-4 hover:text-white">✕</button>
+      <div role="alert" class="mb-4 flex items-start gap-2 rounded-lg bg-danger-bg px-3 py-2 text-danger">
+        <span class="flex-1 selectable">{error}</span>
+        <button class="icon-btn h-5 w-5 text-danger" onclick={() => (error = null)} aria-label="Dismiss">✕</button>
       </div>
     {/if}
 
-    <!-- Loading -->
     {#if loading}
-      <p class="text-center text-[#666] py-16">Loading pairs…</p>
+      <p class="py-20 text-center text-secondary">Loading…</p>
 
-    <!-- Empty state -->
     {:else if pairs.length === 0}
-      <div class="text-center py-16 text-[#666]">
-        <p class="text-base mb-2">No sync pairs configured.</p>
-        <p class="text-sm">Click <span class="text-white">+ Add pair</span> to set one up, or run <code class="bg-[#2a2a2a] px-1.5 py-0.5 rounded text-xs">hsync init</code> in a terminal.</p>
+      <div class="py-20 flex flex-col items-center text-center gap-2">
+        <div class="text-tertiary" aria-hidden="true">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-13.7 5.6M4 12a8 8 0 0 1 13.7-5.6"/><path d="M18 3v3.6h-3.6M6 21v-3.6h3.6"/></svg>
+        </div>
+        <p class="text-[15px] font-semibold text-label">No sync pairs</p>
+        <p class="text-secondary max-w-[300px]">A pair keeps two folders in sync — for example a project folder and a backup on a USB drive.</p>
+        <button class="btn btn-primary mt-2" onclick={() => (showAddForm = true)}>Add Pair…</button>
       </div>
 
-    <!-- Pair list -->
     {:else}
-      <!-- {#each} iterates an array, the (pair.name) is a key for efficient DOM updates -->
-      <ul class="flex flex-col gap-3">
-        {#each pairs as pair (pair.name)}
+      <h2 class="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-secondary">Sync pairs</h2>
+
+      <ul class="rounded-[10px] bg-group shadow-[0_0_0_0.5px_rgb(0_0_0/0.12)] overflow-hidden">
+        {#each pairs as pair, i (pair.name)}
           {@const status = statuses[pair.name]}
           {@const report = lastReport[pair.name]}
+          {@const failure = syncFailure[pair.name]}
           {@const isSyncing = syncing[pair.name]}
+          {@const activity = watchActivity[pair.name]}
+          {@const hasProblem = !!failure || !!report?.errors.length}
+          {@const from = pair.source === "base" ? pair.base : pair.target}
+          {@const to = pair.source === "base" ? pair.target : pair.base}
 
-          <li class="bg-[#242424] border border-[#333] rounded-lg px-4 py-3.5">
+          <li class="px-3 py-2.5 {i > 0 ? 'border-t border-separator' : ''}">
+            <div class="flex items-center gap-3">
 
-            <!-- Card header: name + badges + action buttons -->
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-semibold text-white">{pair.name}</span>
-                <!-- Status badge -->
-                <span class="text-xs px-2 py-0.5 rounded-full font-medium
-                  {status?.running
-                    ? 'bg-green-950 text-green-400 border border-green-900'
-                    : 'bg-[#2a2a2a] text-[#888] border border-[#3a3a3a]'}">
-                  {status?.running ? "watching" : "idle"}
-                </span>
+              <!-- Kind icon: removable drive or folder -->
+              <div class="shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-white {pair.drive_id ? 'bg-[#ff9500]' : 'bg-accent'}" aria-hidden="true">
                 {#if pair.drive_id}
-                  <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-950 text-blue-400 border border-blue-900">
-                    drive pair
-                  </span>
-                {/if}
-              </div>
-
-              <!-- Action buttons -->
-              <div class="flex items-center gap-1.5">
-                <button
-                  onclick={() => triggerSync(pair.name)}
-                  disabled={isSyncing}
-                  class="text-xs px-2.5 py-1 rounded bg-[#2a2a2a] border border-[#3a3a3a] text-[#ccc] hover:bg-[#333] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isSyncing ? "Syncing…" : "Sync now"}
-                </button>
-                <button
-                  onclick={() => toggleWatcher(pair.name)}
-                  class="text-xs px-2.5 py-1 rounded font-medium transition-colors
-                    {status?.running
-                      ? 'bg-red-950 text-red-300 border border-red-900 hover:bg-red-900'
-                      : 'bg-blue-700 text-white hover:bg-blue-600'}"
-                >
-                  {status?.running ? "Stop" : "Watch"}
-                </button>
-                <button
-                  onclick={() => removePair(pair.name)}
-                  class="text-xs px-2 py-1 rounded text-[#666] border border-[#333] hover:bg-[#2a2a2a] hover:text-[#aaa] transition-colors"
-                  title="Remove pair"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <!-- Paths row -->
-            <div class="flex items-center gap-2 text-xs text-[#888] overflow-hidden">
-              <span class="truncate max-w-[260px] {pair.source === 'base' ? 'text-blue-400' : ''}">{pair.base}</span>
-              <span class="shrink-0 text-[#555]">{pair.source === "base" ? "→" : "←"}</span>
-              <span class="truncate max-w-[260px] {pair.source === 'target' ? 'text-blue-400' : ''}">{pair.target}</span>
-            </div>
-
-            <!-- Last sync: failed as a whole -->
-            {#if syncFailure[pair.name]}
-              <div role="alert" class="mt-2 text-xs text-red-300 bg-[#3a1a1a] border border-[#5a2a2a] rounded px-3 py-2">
-                <span class="font-medium text-red-400">Sync failed:</span> {syncFailure[pair.name]}
-              </div>
-            {/if}
-
-            <!-- Last sync report -->
-            {#if report}
-              <p class="mt-2 text-xs {report.errors.length ? 'text-red-400' : 'text-green-600'}">{reportSummary(report)}</p>
-              {#if report.errors.length}
-                <details class="mt-1 text-xs">
-                  <summary class="cursor-pointer text-red-400 hover:text-red-300 select-none">
-                    Show {report.errors.length} {report.errors.length === 1 ? "error" : "errors"}
-                  </summary>
-                  <ul class="mt-1.5 max-h-48 overflow-y-auto bg-[#1e1e1e] border border-[#3a2a2a] rounded divide-y divide-[#2a2a2a]">
-                    {#each report.errors as err}
-                      <li class="px-3 py-1.5">
-                        <div class="text-[#ccc] break-all">{err.path}</div>
-                        <div class="text-red-400/90">{err.message}</div>
-                      </li>
-                    {/each}
-                  </ul>
-                </details>
-              {/if}
-            {/if}
-
-            <!-- Live watcher status -->
-            {#if status?.running}
-              {@const activity = watchActivity[pair.name]}
-              <p class="mt-1 text-[11px] text-[#777]">
-                {#if status.owner === "external"}
-                  Watched from a terminal (<code>hsync watch</code>, PID {status.pid}).
-                {:else if activity}
-                  {activity.message.split("\n")[0]}
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="2" y="5" width="12" height="7" rx="1.5"/><path d="M4.5 9.5h2" stroke-linecap="round"/></svg>
                 {:else}
-                  Starting watcher…
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h3l1.5 1.5h4.5A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z"/></svg>
                 {/if}
-              </p>
-            {/if}
+              </div>
 
-            <!-- Watcher log (app and terminal watchers both write it) -->
-            <button
-              onclick={() => toggleLog(pair.name)}
-              class="mt-1.5 text-[11px] text-[#666] hover:text-[#aaa]"
-            >
-              {logs[pair.name] ? "Hide log" : "Show log"}
-            </button>
-            {#if logs[pair.name]}
-              {@const lines = logs[pair.name] ?? []}
-              <pre class="mt-1 max-h-56 overflow-y-auto bg-[#1a1a1a] border border-[#333] rounded p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all">{#if lines.length === 0}<span class="text-[#666]">No watcher activity yet.</span>{:else}{#each lines as line}<span class={/(error|failed|! )/i.test(line) ? "text-red-400" : "text-[#999]"}>{line}</span>{"\n"}{/each}{/if}</pre>
-            {/if}
+              <!-- Name, status, paths -->
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-label truncate">{pair.name}</span>
+                  <span class="inline-flex items-center gap-1 text-[11px] text-secondary shrink-0">
+                    <span class="w-1.5 h-1.5 rounded-full {hasProblem ? 'bg-danger' : status?.running ? 'bg-ok' : 'bg-tertiary'}" aria-hidden="true"></span>
+                    {hasProblem ? "Problem" : isSyncing ? "Syncing…" : status?.running ? "Watching" : "Idle"}
+                  </span>
+                </div>
+                <div class="mt-0.5 flex items-center gap-1 text-[11px] text-secondary min-w-0" title="{from} → {to}">
+                  <span class="truncate selectable">{from}</span>
+                  <span class="shrink-0 text-tertiary" aria-label="copies to">→</span>
+                  <span class="truncate selectable">{to}</span>
+                </div>
+              </div>
 
+              <!-- Actions -->
+              <div class="shrink-0 flex items-center gap-2">
+                <button class="btn" onclick={() => triggerSync(pair.name)} disabled={isSyncing}>
+                  {isSyncing ? "Syncing…" : "Sync"}
+                </button>
+
+                <!-- Watch: macOS-style switch -->
+                <label class="inline-flex items-center gap-1.5 text-[11px] text-secondary" title="Sync automatically when files change or the drive is plugged in">
+                  Watch
+                  <button
+                    role="switch"
+                    aria-checked={!!status?.running}
+                    aria-label="Watch {pair.name}"
+                    onclick={() => toggleWatcher(pair.name)}
+                    class="relative w-[26px] h-[15px] rounded-full transition-colors {status?.running ? 'bg-accent' : 'bg-tertiary'}"
+                  >
+                    <span class="absolute top-[1.5px] left-[1.5px] w-3 h-3 rounded-full bg-white shadow transition-transform {status?.running ? 'translate-x-[11px]' : ''}"></span>
+                  </button>
+                </label>
+
+                <button class="icon-btn" onclick={() => removePair(pair.name)} title="Remove pair" aria-label="Remove {pair.name}">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Details, aligned with the text column -->
+            <div class="pl-10">
+              {#if status?.running}
+                <p class="mt-1.5 text-[11px] text-secondary">
+                  {#if status.owner === "external"}
+                    Watched from a terminal (<code class="font-mono">hsync watch</code>, PID {status.pid})
+                  {:else if activity}
+                    {activity.message.split("\n")[0]}
+                  {:else}
+                    Starting…
+                  {/if}
+                </p>
+              {/if}
+
+              {#if failure}
+                <div role="alert" class="mt-2 rounded-md bg-danger-bg px-2.5 py-1.5 text-[12px] text-danger selectable">
+                  <span class="font-semibold">Sync failed.</span> {failure}
+                </div>
+              {/if}
+
+              {#if report}
+                <p class="mt-1.5 text-[11px] {report.errors.length ? 'text-danger' : 'text-secondary'}">
+                  Last sync: {reportSummary(report)}
+                </p>
+                {#if report.errors.length}
+                  <details class="mt-1 text-[12px]">
+                    <summary class="cursor-default text-accent select-none">
+                      Show {report.errors.length} {report.errors.length === 1 ? "error" : "errors"}
+                    </summary>
+                    <ul class="mt-1.5 max-h-48 overflow-y-auto rounded-md border border-separator divide-y divide-separator selectable">
+                      {#each report.errors as err}
+                        <li class="px-2.5 py-1.5">
+                          <div class="text-label break-all">{err.path}</div>
+                          <div class="text-danger">{err.message}</div>
+                        </li>
+                      {/each}
+                    </ul>
+                  </details>
+                {/if}
+              {/if}
+
+              <button class="mt-1 text-[11px] text-accent hover:underline" onclick={() => toggleLog(pair.name)}>
+                {logs[pair.name] ? "Hide Log" : "Show Log"}
+              </button>
+              {#if logs[pair.name]}
+                {@const lines = logs[pair.name] ?? []}
+                <pre class="mt-1 max-h-56 overflow-y-auto rounded-md bg-window border border-separator p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-all selectable">{#if lines.length === 0}<span class="text-secondary">No watcher activity yet.</span>{:else}{#each lines as line}<span class={/(error|failed|! )/i.test(line) ? "text-danger" : "text-secondary"}>{line}</span>{"\n"}{/each}{/if}</pre>
+              {/if}
+            </div>
           </li>
         {/each}
       </ul>
-    {/if}
 
-  </div>
+      <p class="px-2.5 pt-2 text-[11px] text-secondary">
+        Files copy in the direction of the arrow. Removed files go to <code class="font-mono">.hard-sync-trash</code> on the receiving side.
+      </p>
+    {/if}
+  </main>
 </div>
+
+<!-- Add pair: macOS-style sheet -->
+{#if showAddForm}
+  <AddPair
+    onAdded={() => { showAddForm = false; loadPairs(); }}
+    onCancel={() => (showAddForm = false)}
+  />
+{/if}
+
+<style>
+  /* Leave room for the macOS traffic-light buttons (overlay title bar). */
+  :global(html[data-platform="macos"]) .toolbar { padding-left: 80px; }
+  :global(html:not([data-platform="macos"])) .toolbar { padding-left: 16px; }
+  /* Windows/Linux draw their own title bar with the app name — don't repeat it. */
+  :global(html:not([data-platform="macos"])) .toolbar h1 { visibility: hidden; }
+</style>
