@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 
 ---
 
+## [1.0.1] — 2026-11-11
+
+Docs and packaging fix. No behaviour changes.
+
+### Fixed
+- README install command: the CLI crate is published as `hsync`, so the command is `cargo install hsync` (was `cargo install hard-sync-cli`, which doesn't exist) — [#4](https://github.com/codad5/hard-sync/issues/4)
+- crates.io pages for `hsync` and `hard-sync-core` now show the README
+- Crate `repository` links now point to `github.com/codad5/hard-sync`
+
+---
+
 ## [1.0.0] — 2026-03-08
 
 First stable release. Complete ground-up rewrite with a new architecture, new config format, desktop app, and background watch support.
