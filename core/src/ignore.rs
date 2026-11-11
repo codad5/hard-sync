@@ -3,7 +3,12 @@ use std::path::Path;
 use crate::config::PairConfig;
 
 // Built-in patterns always ignored — regardless of user config
-const BUILTIN: &[&str] = &[".hard-sync-trash", ".hard_sync_cli", ".hardsyncignore"];
+const BUILTIN: &[&str] = &[
+    ".hard-sync-trash",
+    ".hard_sync_cli",
+    ".hardsyncignore",
+    crate::access::WRITE_PROBE_PREFIX,
+];
 
 /// Files and folders that operating systems create on their own (Finder view
 /// settings, search indexes, recycle bins). They must never be copied, and
