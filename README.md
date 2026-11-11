@@ -16,7 +16,7 @@
 
 | | CLI (`hsync`) | Desktop app |
 |---|---|---|
-| Install | `cargo install hard-sync-cli` | Download installer from [Releases](https://github.com/codad5/hard-sync/releases) |
+| Install | `cargo install hsync` | Download installer from [Releases](https://github.com/codad5/hard-sync/releases) |
 | Use | Terminal commands | GUI window + system tray |
 | Watcher | `hsync watch --name backup` | Click **Watch** on a pair |
 | Background | `hsync watch --name backup --detach` | Runs in system tray |
@@ -59,7 +59,7 @@ In watch mode:
 ### From crates.io
 
 ```bash
-cargo install hard-sync-cli
+cargo install hsync
 ```
 
 ### From source
@@ -249,7 +249,7 @@ Set any field to `null` to keep the built-in tone for that event. Supported form
 | Crate | Role |
 |-------|------|
 | [`hard-sync-core`](https://crates.io/crates/hard-sync-core) | Library — all sync logic, drive detection, config, watcher |
-| [`hard-sync-cli`](https://crates.io/crates/hard-sync-cli) (`hsync`) | Binary — thin CLI wrapper over core |
+| [`hsync`](https://crates.io/crates/hsync) | Binary — thin CLI wrapper over core |
 
 Both are published on [crates.io](https://crates.io).
 

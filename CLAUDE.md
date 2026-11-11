@@ -22,7 +22,7 @@ hard-sync/
 │   ├── Cargo.toml
 │   ├── AGENTS.md           ← core-specific agent context
 │   └── src/
-├── cli/                    → published crate: hard-sync-cli  (binary: hsync)
+├── cli/                    → published crate: hsync  (binary: hsync)
 │   ├── Cargo.toml
 │   ├── AGENTS.md           ← cli-specific agent context
 │   └── src/

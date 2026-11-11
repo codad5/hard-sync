@@ -4,7 +4,8 @@ version = "1.0.0"
 edition = "2024"
 description = "Sync files between two paths. Auto-detects drives by UUID/label."
 license = "MIT"
-repository = "https://github.com/codad5/hard-sync-cli"
+repository = "https://github.com/codad5/hard-sync"
+readme = "../README.md"
 keywords = ["sync", "backup", "drive", "usb", "cli"]
 categories = ["filesystem", "command-line-utilities"]
 
