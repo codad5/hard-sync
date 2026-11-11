@@ -1,7 +1,7 @@
 # hard-sync
 
 <p align="center">
-  <img src="ui/logo.svg" alt="hard-sync logo" width="96" height="96" />
+  <img src="https://raw.githubusercontent.com/codad5/hard-sync/master/ui/logo.svg" alt="hard-sync logo" width="96" height="96" />
 </p>
 
 <p align="center">
@@ -29,7 +29,7 @@ Both are built on `hard-sync-core` — the same sync engine, drive detection, an
 ## Desktop app
 
 <p align="center">
-  <img src="docs/desktop.png" alt="hard-sync desktop app" width="700" />
+  <img src="https://raw.githubusercontent.com/codad5/hard-sync/master/docs/desktop.png" alt="hard-sync desktop app" width="700" />
 </p>
 
 The desktop app lives in the system tray. Left-click the tray icon to open the window. From there you can:
