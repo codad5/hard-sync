@@ -16,7 +16,7 @@ pub use config::{
 pub use sounds::{play_event_sound, SoundEvent};
 
 // Drive API
-pub use drive::{find_mounted_drive, get_drive_id, list_connected_drives, same_drive, ConnectedDrive};
+pub use drive::{drive_matches_connected, find_mounted_drive, get_drive_id, list_connected_drives, same_drive, ConnectedDrive};
 
 // Watch API
 pub use watcher::{watch_pair, WatchEvent, WatchHandle};
