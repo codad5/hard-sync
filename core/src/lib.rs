@@ -13,7 +13,7 @@ pub use config::{
 };
 
 // Sounds API
-pub use sounds::{play_event_sound, SoundEvent};
+pub use sounds::{play_event_sound, play_event_sound_handle, SoundEvent};
 
 // Drive API
 pub use drive::{drive_matches_connected, find_mounted_drive, get_drive_id, list_connected_drives, same_drive, ConnectedDrive};

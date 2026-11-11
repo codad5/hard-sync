@@ -1,8 +1,8 @@
 use colored::Colorize;
 use fli::option_parser::{Value, ValueTypes};
-use hard_sync_core::{get_pair, play_event_sound, sync_pair, SoundEvent, SyncOptions};
+use hard_sync_core::{get_pair, play_event_sound_handle, sync_pair, SoundEvent, SyncOptions};
 
-use crate::output::{print_err, print_sync_report, require_name};
+use crate::output::{mark_failed, print_err, print_sync_report, require_name};
 
 pub fn sync_callback(data: &fli::command::FliCallbackData) {
     let name = match require_name(data) { Some(n) => n, None => return };
@@ -15,22 +15,32 @@ pub fn sync_callback(data: &fli::command::FliCallbackData) {
 
     println!("Syncing {}...", format!("\"{}\"", name).cyan().bold());
 
-    if let Some(ref s) = sounds {
-        if !dry_run { play_event_sound(s, SoundEvent::SyncStart); }
-    }
+    // Sounds play on background threads; keep the handles and wait for them
+    // below, otherwise this one-shot process exits and cuts them off.
+    let mut playing = Vec::new();
+    let mut play = |event| {
+        if let Some(ref s) = sounds {
+            if !dry_run { playing.push(play_event_sound_handle(s, event)); }
+        }
+    };
+
+    play(SoundEvent::SyncStart);
 
     match sync_pair(&name, SyncOptions { dry_run, verify }) {
         Ok(report) => {
-            if let Some(ref s) = sounds {
-                if !dry_run { play_event_sound(s, SoundEvent::SyncDone); }
-            }
+            // A "done" chime means "safe to unplug" — never play it if files failed.
+            let failed = !report.errors.is_empty();
+            play(if failed { SoundEvent::SyncError } else { SoundEvent::SyncDone });
             print_sync_report(&report, dry_run);
+            if failed { mark_failed(); }
         }
         Err(e) => {
-            if let Some(ref s) = sounds {
-                play_event_sound(s, SoundEvent::SyncError);
-            }
+            play(SoundEvent::SyncError);
             print_err(&e);
         }
+    }
+
+    for handle in playing {
+        let _ = handle.join();
     }
 }

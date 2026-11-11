@@ -131,23 +131,40 @@ fn sha256_changed(src: &Path, tgt: &Path) -> bool {
 
 // ── File operations ───────────────────────────────────────────────────────────
 
-fn copy_file(src: &Path, dest: &Path, errors: &mut Vec<SyncError>) {
+/// Copy `src` to `dest`. Returns true on success; on failure records an error.
+fn copy_file(src: &Path, dest: &Path, errors: &mut Vec<SyncError>) -> bool {
     if let Some(parent) = dest.parent() {
         if !parent.exists() {
             if let Err(e) = std::fs::create_dir_all(parent) {
                 errors.push(SyncError {
                     path: dest.to_string_lossy().to_string(),
-                    message: format!("Failed to create directory: {}", e),
+                    message: format!("Failed to create directory: {}", describe_io_error(&e)),
                 });
-                return;
+                return false;
             }
         }
     }
     if let Err(e) = std::fs::copy(src, dest) {
         errors.push(SyncError {
             path: dest.to_string_lossy().to_string(),
-            message: format!("Failed to copy: {}", e),
+            message: format!("Failed to copy: {}", describe_io_error(&e)),
         });
+        return false;
+    }
+    true
+}
+
+/// io::Error text, plus a hint for the one failure users can't diagnose from
+/// the OS message alone: a drive mounted read-only (e.g. NTFS on macOS).
+fn describe_io_error(e: &std::io::Error) -> String {
+    if e.kind() == std::io::ErrorKind::ReadOnlyFilesystem {
+        format!(
+            "{} — the drive is mounted read-only{}",
+            e,
+            if cfg!(target_os = "macos") { " (macOS can only read NTFS drives without extra software)" } else { "" }
+        )
+    } else {
+        e.to_string()
     }
 }
 
@@ -156,15 +173,15 @@ fn trash_file(
     target_root: &Path,
     pair: &PairConfig,
     errors: &mut Vec<SyncError>,
-) {
+) -> bool {
     let trash_dir = target_root.join(".hard-sync-trash");
     if !trash_dir.exists() {
         if let Err(e) = std::fs::create_dir_all(&trash_dir) {
             errors.push(SyncError {
                 path: abs_path.to_string_lossy().to_string(),
-                message: format!("Failed to create trash dir: {}", e),
+                message: format!("Failed to create trash dir: {}", describe_io_error(&e)),
             });
-            return;
+            return false;
         }
     }
 
@@ -174,17 +191,27 @@ fn trash_file(
     let trash_name = format!("{}_{}_{}", ts, pair.name, filename);
     let trash_dest = trash_dir.join(&trash_name);
 
-    if let Err(e) = std::fs::rename(abs_path, &trash_dest) {
-        // rename fails across drives — fall back to copy + delete
-        if std::fs::copy(abs_path, &trash_dest).is_ok() {
-            let _ = std::fs::remove_file(abs_path);
-        } else {
-            errors.push(SyncError {
-                path: abs_path.to_string_lossy().to_string(),
-                message: format!("Failed to trash file: {}", e),
-            });
-        }
+    if std::fs::rename(abs_path, &trash_dest).is_ok() {
+        return true;
     }
+    // rename can fail across filesystems — fall back to copy + delete
+    if let Err(e) = std::fs::copy(abs_path, &trash_dest) {
+        errors.push(SyncError {
+            path: abs_path.to_string_lossy().to_string(),
+            message: format!("Failed to trash file: {}", describe_io_error(&e)),
+        });
+        return false;
+    }
+    if let Err(e) = std::fs::remove_file(abs_path) {
+        // Don't leave the file in two places: drop the trash copy again.
+        let _ = std::fs::remove_file(&trash_dest);
+        errors.push(SyncError {
+            path: abs_path.to_string_lossy().to_string(),
+            message: format!("Failed to trash file: {}", describe_io_error(&e)),
+        });
+        return false;
+    }
+    true
 }
 
 // ── Public sync API ───────────────────────────────────────────────────────────
@@ -224,7 +251,9 @@ pub fn sync_pair(name: &str, options: SyncOptions) -> Result<SyncReport, String>
                 // New file on source — copy to target
                 if !options.dry_run {
                     let dest = target_path.join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
-                    copy_file(&src.abs_path, &dest, &mut report.errors);
+                    if !copy_file(&src.abs_path, &dest, &mut report.errors) {
+                        continue;
+                    }
                 }
                 report.copied += 1;
                 report.ops.push(SyncOperation { rel_path: rel.clone(), outcome: SyncOutcome::Copied });
@@ -240,7 +269,9 @@ pub fn sync_pair(name: &str, options: SyncOptions) -> Result<SyncReport, String>
                     if !options.dry_run {
                         let dest =
                             target_path.join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
-                        copy_file(&src.abs_path, &dest, &mut report.errors);
+                        if !copy_file(&src.abs_path, &dest, &mut report.errors) {
+                            continue;
+                        }
                     }
                     report.updated += 1;
                     report.ops.push(SyncOperation { rel_path: rel.clone(), outcome: SyncOutcome::Updated });
@@ -259,8 +290,10 @@ pub fn sync_pair(name: &str, options: SyncOptions) -> Result<SyncReport, String>
         }
         match pair.delete_behavior {
             DeleteBehavior::Trash => {
-                if !options.dry_run {
-                    trash_file(&tgt.abs_path, &target_path, &pair, &mut report.errors);
+                if !options.dry_run
+                    && !trash_file(&tgt.abs_path, &target_path, &pair, &mut report.errors)
+                {
+                    continue;
                 }
                 report.trashed += 1;
                 report.ops.push(SyncOperation { rel_path: rel.clone(), outcome: SyncOutcome::Trashed });
@@ -270,8 +303,9 @@ pub fn sync_pair(name: &str, options: SyncOptions) -> Result<SyncReport, String>
                     if let Err(e) = std::fs::remove_file(&tgt.abs_path) {
                         report.errors.push(SyncError {
                             path: rel.clone(),
-                            message: format!("Failed to delete: {}", e),
+                            message: format!("Failed to delete: {}", describe_io_error(&e)),
                         });
+                        continue;
                     }
                 }
                 report.deleted += 1;

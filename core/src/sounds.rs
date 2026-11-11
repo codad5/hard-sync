@@ -20,6 +20,14 @@ pub enum SoundEvent {
 /// Playback runs on a background thread — this call returns immediately.
 /// Audio errors are silently ignored (sound never blocks sync).
 pub fn play_event_sound(config: &SoundConfig, event: SoundEvent) {
+    drop(play_event_sound_handle(config, event));
+}
+
+/// Same as [`play_event_sound`], but returns the playback thread's handle.
+///
+/// Short-lived callers (a one-shot `hsync sync`) must `join()` it before the
+/// process exits, or the sound is cut off mid-play.
+pub fn play_event_sound_handle(config: &SoundConfig, event: SoundEvent) -> thread::JoinHandle<()> {
     let path = match event {
         SoundEvent::SyncStart => config.sync_start.as_ref(),
         SoundEvent::SyncDone  => config.sync_done.as_ref(),
@@ -34,10 +42,10 @@ pub fn play_event_sound(config: &SoundConfig, event: SoundEvent) {
 
 // ── Internal — file playback ──────────────────────────────────────────────────
 
-fn play_file_async(path: PathBuf) {
+fn play_file_async(path: PathBuf) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         let _ = play_file_blocking(&path);
-    });
+    })
 }
 
 fn play_file_blocking(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -50,10 +58,10 @@ fn play_file_blocking(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
 
 // ── Internal — synthesized default tones ─────────────────────────────────────
 
-fn play_default_async(event: SoundEvent) {
+fn play_default_async(event: SoundEvent) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         let _ = play_default_blocking(event);
-    });
+    })
 }
 
 fn play_default_blocking(event: SoundEvent) -> Result<(), Box<dyn std::error::Error>> {

@@ -86,6 +86,22 @@ pub fn format_size(bytes: u64) -> String {
 
 pub fn print_err(msg: &str) {
     eprintln!("{} {}", "Error:".bright_red().bold(), msg);
+    mark_failed();
+}
+
+// ── Exit status ───────────────────────────────────────────────────────────────
+//
+// Callbacks can't return a status through fli, so they record failure here and
+// main() turns it into a non-zero exit code — scripts can then tell hsync failed.
+
+static FAILED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn mark_failed() {
+    FAILED.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn exit_code() -> i32 {
+    if FAILED.load(std::sync::atomic::Ordering::Relaxed) { 1 } else { 0 }
 }
 
 pub fn require_str(data: &fli::command::FliCallbackData, flag: &str) -> Option<String> {

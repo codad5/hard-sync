@@ -56,7 +56,9 @@ pub fn watch_callback(data: &fli::command::FliCallbackData) {
             }
             WatchEvent::SyncCompleted(report) => {
                 if let Some(ref s) = sounds {
-                    play_event_sound(s, SoundEvent::SyncDone);
+                    // "done" means "safe to unplug" — not if any file failed
+                    let event = if report.errors.is_empty() { SoundEvent::SyncDone } else { SoundEvent::SyncError };
+                    play_event_sound(s, event);
                 }
                 print_sync_report(&report, false);
                 println!("{}", "  Watching for changes...".dimmed());

@@ -131,7 +131,9 @@ pub fn cmd_trigger_sync(name: String, dry_run: bool) -> Result<SyncReport, Strin
     if let Some(ref s) = sounds {
         if !dry_run {
             match &result {
-                Ok(_)  => play_event_sound(s, SoundEvent::SyncDone),
+                // "done" means "safe to unplug" — not if any file failed
+                Ok(r) if r.errors.is_empty() => play_event_sound(s, SoundEvent::SyncDone),
+                Ok(_)  => play_event_sound(s, SoundEvent::SyncError),
                 Err(_) => play_event_sound(s, SoundEvent::SyncError),
             }
         }

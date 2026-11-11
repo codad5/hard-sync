@@ -144,4 +144,5 @@ fn main() {
         .set_callback(autostart_list_callback);
 
     app.run();
+    std::process::exit(output::exit_code());
 }
