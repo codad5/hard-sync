@@ -43,7 +43,7 @@ hard-sync/
 - Either side can be source — configurable per pair, swappable at any time
 
 ### Config
-- Location: `~/.config/hard-sync/config.json`
+- Location: `dirs::config_dir()/hard-sync/config.json` — `~/.config/` on Linux, `~/Library/Application Support/` on macOS, `%APPDATA%` on Windows
 - Format: JSON
 - Named pairs — user inits once, references by name forever
 - No per-directory state files (`.hard_sync_cli/` approach is dropped)
@@ -110,17 +110,20 @@ Two pair types — both supported. Drive type is auto-detected on `init`, never 
 - Drive letters (Windows) and mount points (Linux) shift depending on plug order
 - On `init`: detect and store the drive's stable identifier from the target path
 - On `watch`: poll for a drive matching the stored UUID/label regardless of where it mounted
-- Abstract behind a trait — Windows and Linux implementations are separate
+- Per-OS UUID lookup: Windows (volume GUID), Linux (`/dev/disk/by-uuid`), macOS (`diskutil info`)
+- Matching: if pair and drive both have a UUID, UUID decides alone; label is only a fallback (labels like "Untitled" aren't unique)
 
 ### Ignore Patterns
 - Per-pair list in config JSON
 - Optional `.hardsyncignore` file in base dir (gitignore-style lines, `#` comments)
-- Always auto-ignore: `.hard-sync-trash/`, `.hard_sync_cli/`, `.hardsyncignore`
+- Always auto-ignore: `.hard-sync-trash/`, `.hard_sync_cli/`, `.hardsyncignore`, plus OS metadata (`.DS_Store`, `._*`, `.Spotlight-V100`, `.fseventsd`, `.Trashes`, `System Volume Information`, `$RECYCLE.BIN`, ...) — see `OS_METADATA` in `core/src/ignore.rs`
 
 ### Notification Sounds
-- **Opt-in** — null by default (sound in CLI is unusual, should never surprise)
+- **On by default** — built-in synthesized tones play when a sound path is `null` (the default). Hearing start/done is the core "plug in, wait, unplug" UX
 - Events: `sync_start`, `sync_done`, `sync_error`
-- User provides custom WAV/MP3 path per event, per pair, in config
+- `sync_done` means "safe to unplug": if any file failed, play `sync_error` instead
+- User can provide a custom WAV/MP3 path per event, per pair, in config
+- One-shot callers (CLI `sync`) must join `play_event_sound_handle` before exiting
 - Crate: `rodio` (pure Rust, cross-platform)
 
 ---

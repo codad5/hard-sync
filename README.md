@@ -128,7 +128,7 @@ hsync watch --name <name>           # foreground — blocks until Ctrl+C
 hsync watch --name <name> --detach  # background — spawns a daemon, returns immediately
 ```
 
-Foreground mode blocks until Ctrl+C. Background mode (`--detach`) writes the process PID and log output to `~/.local/share/hsync/` (Windows: `%APPDATA%\hsync\`) and exits.
+Foreground mode blocks until Ctrl+C. Background mode (`--detach`) writes the process PID and log output to `~/.local/share/hsync/` (macOS: `~/Library/Application Support/hsync/`, Windows: `%APPDATA%\hsync\`) and exits.
 
 ```
 Watching "backup"...
@@ -224,13 +224,19 @@ hsync trash clear --all
 
 ## Config
 
-Config is stored at `~/.config/hard-sync/config.json`. All settings are managed through commands — you should not need to edit it directly.
+Config is stored in your OS's standard config folder. All settings are managed through commands — you should not need to edit it directly.
 
-**Ignore patterns:** Add a `.hardsyncignore` file to your base directory (gitignore syntax). Patterns can also be added per-pair in config. Built-in ignores: `.hard-sync-trash/`, `.hardsyncignore`.
+| OS | Config file |
+|----|-------------|
+| Linux | `~/.config/hard-sync/config.json` |
+| macOS | `~/Library/Application Support/hard-sync/config.json` |
+| Windows | `%APPDATA%\hard-sync\config.json` |
+
+**Ignore patterns:** Add a `.hardsyncignore` file to your base directory (gitignore syntax). Patterns can also be added per-pair in config. Always ignored: hard-sync's own files (`.hard-sync-trash/`, `.hardsyncignore`) and files the OS creates on its own — `.DS_Store`, `._*`, `.Spotlight-V100`, `.fseventsd`, `.Trashes` (macOS), `System Volume Information`, `$RECYCLE.BIN`, `Thumbs.db`, `desktop.ini` (Windows). These are never copied, and never trashed from a drive.
 
 **Delete behavior** (per pair, edit config directly): `"trash"` (default), `"delete"`, or `"ignore"`.
 
-**Notification sounds** — built-in tones play automatically on every sync (start, done, error). No setup required. To use your own audio files instead, edit the pair in `config.json`:
+**Notification sounds** — built-in tones play automatically on every sync (start, done, error). No setup required. If any file fails to sync, you hear the error tone instead of "done", so "done" always means it's safe to unplug. To use your own audio files instead, edit the pair in `config.json`:
 
 ```json
 "sounds": {
@@ -266,7 +272,7 @@ hard-sync-core = "1.0"
 
 ### What it exposes
 
-**Config** — manage named sync pairs stored in `~/.config/hard-sync/config.json`:
+**Config** — manage named sync pairs stored in `config.json` (location per OS: see [Config](#config)):
 
 ```rust
 use hard_sync_core::{add_pair, list_pairs, get_pair, remove_pair, PairConfig, SourceSide};
@@ -308,12 +314,15 @@ let handle = watch_pair(&pair_config, move |event| {
 // handle.stop() to stop watching
 ```
 
-**Sounds** — play notification sounds (opt-in, paths set per pair in config):
+**Sounds** — play notification sounds (built-in tones by default, custom files per pair in config):
 
 ```rust
-use hard_sync_core::{play_event_sound, SoundEvent};
+use hard_sync_core::{play_event_sound, play_event_sound_handle, SoundEvent};
 
-play_event_sound(&pair_config.sounds, SoundEvent::SyncDone);
+play_event_sound(&pair_config.sounds, SoundEvent::SyncDone);   // fire and forget
+
+// Short-lived process? Wait for the sound, or exiting cuts it off:
+play_event_sound_handle(&pair_config.sounds, SoundEvent::SyncDone).join().ok();
 ```
 
 **Trash** — inspect and clear per-pair trash:
@@ -332,14 +341,14 @@ clear_trash(&pair_config)?;
 | Feature | Windows | Linux | macOS |
 |---------|---------|-------|-------|
 | File sync | ✅ | ✅ | ✅ |
-| Drive detection (by UUID/label) | ✅ | ✅ | ✅ |
+| Drive detection (by UUID/label) | ✅ | ✅ | ✅ (UUID via `diskutil`) |
 | Watch mode | ✅ | ✅ | ✅ |
-| Background watcher (`--detach`) | ✅ | ✅ | ✅ |
-| Autostart on login | ✅ (registry) | ✅ (XDG) | ✅ (launchd) |
+| Background watcher (`--detach`) | ✅ | ✅ | ⚠️ untested |
+| Autostart on login | ✅ (registry) | ✅ (XDG) | ⚠️ untested (launchd) |
 | Notification sounds | ✅ | ✅ | ✅ |
 | Desktop app (Tauri) | ✅ | ✅ | ⚠️ untested |
 
-macOS builds should work but have not been tested. If you run into issues, please [open an issue](https://github.com/codad5/hard-sync/issues).
+The macOS CLI has been tested on Apple Silicon (sync, watch, drive detection with plug/unplug). Items marked ⚠️ should work but haven't been tested yet. Note that macOS mounts NTFS drives read-only, so hard-sync can read from them but not write to them. If you run into issues, please [open an issue](https://github.com/codad5/hard-sync/issues).
 
 ---
 

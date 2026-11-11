@@ -4,6 +4,28 @@ All notable changes to this project are documented here.
 
 ---
 
+## [Unreleased]
+
+First release tested on macOS.
+
+### Fixed
+- OS metadata files (`.DS_Store`, `._*`, `.Spotlight-V100`, `.fseventsd`, `.Trashes`, `System Volume Information`, `$RECYCLE.BIN`, `Thumbs.db`, `desktop.ini`) are now always ignored — they were copied around and, at a drive root, sync tried to trash system folders
+- macOS: drives are now identified by Volume UUID (via `diskutil`), not label only
+- macOS: unnamed drives are no longer stored with the placeholder label "Untitled", which matched any unnamed drive
+- Drive matching: when both the pair and the drive have a UUID, the UUID decides; label is only a fallback. `hsync drives` now uses the same rules as `watch`
+- Files that fail to copy/trash/delete are no longer counted or listed as successful
+- `hsync` now exits with code 1 on errors, including syncs with failed files
+- `hsync sync` no longer cuts off its own notification sounds
+- The "done" sound no longer plays when files failed — you hear the error sound instead (CLI and desktop app)
+- Trash fallback no longer leaves a file in two places if deleting the original fails
+- Read-only drive errors now explain the cause (e.g. NTFS on macOS)
+- README images now render on crates.io; README shows the correct config location per OS
+
+### Added
+- `hard-sync-core`: `drive_matches_connected` and `play_event_sound_handle`
+
+---
+
 ## [1.0.1] — 2026-11-11
 
 Docs and packaging fix. No behaviour changes.
