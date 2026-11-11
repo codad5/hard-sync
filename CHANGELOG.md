@@ -4,7 +4,7 @@ All notable changes to this project are documented here.
 
 ---
 
-## [1.0.2] — 2026-11-11
+## [1.0.2] — 2026-11-12
 
 First release tested on macOS.
 
