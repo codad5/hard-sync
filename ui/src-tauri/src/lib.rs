@@ -1,5 +1,5 @@
 use tauri::{
-    menu::{Menu, MenuItem},
+    menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
     Manager,
 };
@@ -9,14 +9,17 @@ mod commands;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(commands::AppWatchers::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             // System tray
-            let show = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show, &quit])?;
+            let show = MenuItem::with_id(app, "show", "Show hard-sync", true, None::<&str>)?;
+            let stop_all = MenuItem::with_id(app, "stop_all", "Stop all watchers", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "Quit hard-sync", true, None::<&str>)?;
+            let sep = PredefinedMenuItem::separator(app)?;
+            let menu = Menu::with_items(app, &[&show, &stop_all, &sep, &quit])?;
 
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
@@ -24,6 +27,8 @@ pub fn run() {
                 .tooltip("hard-sync")
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => show_window(app),
+                    // Pause syncing without quitting the app
+                    "stop_all" => commands::stop_every_watcher(app),
                     "quit" => app.exit(0),
                     _ => {}
                 })
@@ -52,9 +57,25 @@ pub fn run() {
             commands::cmd_watcher_status,
             commands::cmd_start_watcher,
             commands::cmd_stop_watcher,
+            commands::cmd_watcher_log,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        // Closing the window hides it: hard-sync keeps running (and watching)
+        // in the menu bar / system tray until Quit.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| match event {
+            // macOS: clicking the Dock icon opens the window.
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen { .. } => show_window(app),
+            tauri::RunEvent::Exit => commands::stop_all(&app.state::<commands::AppWatchers>()),
+            _ => {}
+        });
 }
 
 fn show_window(app: &tauri::AppHandle) {
