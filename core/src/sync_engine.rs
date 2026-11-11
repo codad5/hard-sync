@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
 use crate::config::{DeleteBehavior, PairConfig, SourceSide};
+use crate::access::{check_pair_access, WriteCheck};
 use crate::ignore::IgnoreList;
 
 // ── Public types ──────────────────────────────────────────────────────────────
@@ -221,12 +222,11 @@ pub fn sync_pair(name: &str, options: SyncOptions) -> Result<SyncReport, String>
 
     let (source_path, target_path) = resolve_paths(&pair);
 
-    if !source_path.exists() {
-        return Err(format!("Source path does not exist: {}", source_path.display()));
-    }
-    if !target_path.exists() {
-        return Err(format!("Target path does not exist: {}", target_path.display()));
-    }
+    // Fail once, up front, if the source can't be read or the target can't be
+    // written — instead of one error per file. Dry runs must not write, so they
+    // only ask the OS about read-only mounts.
+    let write_check = if options.dry_run { WriteCheck::MountOnly } else { WriteCheck::Probe };
+    check_pair_access(&pair, write_check).map_err(|e| e.to_string())?;
 
     let ignore = IgnoreList::from_pair(&pair, &source_path);
 

@@ -1,9 +1,13 @@
+pub mod access;
 pub mod config;
 pub mod drive;
 pub mod ignore;
 pub mod sounds;
 pub mod sync_engine;
 pub mod watcher;
+
+// Access checks
+pub use access::{check_pair_access, check_readable, check_writable, AccessError, WriteCheck};
 
 // Config API
 pub use config::{

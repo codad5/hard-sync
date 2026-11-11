@@ -48,6 +48,7 @@ pub fn run() {
             commands::cmd_set_source,
             commands::cmd_trigger_sync,
             commands::cmd_list_drives,
+            commands::cmd_platform,
             commands::cmd_watcher_status,
             commands::cmd_start_watcher,
             commands::cmd_stop_watcher,

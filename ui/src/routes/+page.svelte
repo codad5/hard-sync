@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import { ask } from "@tauri-apps/plugin-dialog";
   import { onMount } from "svelte";
   import AddPair from "$lib/AddPair.svelte";
 
@@ -44,6 +45,9 @@
   let statuses = $state<Record<string, WatcherStatus>>({});
   let syncing = $state<Record<string, boolean>>({});
   let lastReport = $state<Record<string, SyncReport>>({});
+  // Why the last sync of a pair failed as a whole (e.g. target drive is read-only).
+  // Shown on that pair's card, next to the thing it is about.
+  let syncFailure = $state<Record<string, string | null>>({});
   let loading = $state(true);
   let error = $state<string | null>(null);
   let showAddForm = $state(false);
@@ -82,11 +86,14 @@
 
   async function triggerSync(name: string) {
     syncing = { ...syncing, [name]: true };
+    syncFailure = { ...syncFailure, [name]: null };
     try {
       const report = await invoke<SyncReport>("cmd_trigger_sync", { name, dryRun: false });
       lastReport = { ...lastReport, [name]: report };
     } catch (e) {
-      error = String(e);
+      const { [name]: _, ...rest } = lastReport;
+      lastReport = rest;
+      syncFailure = { ...syncFailure, [name]: String(e) };
     } finally {
       syncing = { ...syncing, [name]: false };
     }
@@ -110,7 +117,16 @@
   }
 
   async function removePair(name: string) {
-    if (!confirm(`Remove pair "${name}"? This does not delete any files.`)) return;
+    // Must be the dialog plugin's ask(), awaited. Inside the Tauri webview the
+    // browser's confirm() doesn't block, so the pair was removed before the
+    // user had answered.
+    const yes = await ask(`Remove pair "${name}"? This does not delete any files.`, {
+      title: "Remove pair",
+      kind: "warning",
+      okLabel: "Remove",
+      cancelLabel: "Cancel",
+    });
+    if (!yes) return;
     try {
       await invoke("cmd_remove_pair", { name });
       await loadPairs();
@@ -125,7 +141,7 @@
     if (r.updated)       parts.push(`${r.updated} updated`);
     if (r.trashed)       parts.push(`${r.trashed} trashed`);
     if (r.skipped)       parts.push(`${r.skipped} skipped`);
-    if (r.errors.length) parts.push(`${r.errors.length} errors`);
+    if (r.errors.length) parts.push(`${r.errors.length} ${r.errors.length === 1 ? "error" : "errors"}`);
     return parts.length ? parts.join("  ·  ") : "Up to date";
   }
 </script>
@@ -178,7 +194,7 @@
     {:else if pairs.length === 0}
       <div class="text-center py-16 text-[#666]">
         <p class="text-base mb-2">No sync pairs configured.</p>
-        <p class="text-sm">Run <code class="bg-[#2a2a2a] px-1.5 py-0.5 rounded text-xs">hsync init</code> in a terminal to set one up.</p>
+        <p class="text-sm">Click <span class="text-white">+ Add pair</span> to set one up, or run <code class="bg-[#2a2a2a] px-1.5 py-0.5 rounded text-xs">hsync init</code> in a terminal.</p>
       </div>
 
     <!-- Pair list -->
@@ -245,9 +261,31 @@
               <span class="truncate max-w-[260px] {pair.source === 'target' ? 'text-blue-400' : ''}">{pair.target}</span>
             </div>
 
+            <!-- Last sync: failed as a whole -->
+            {#if syncFailure[pair.name]}
+              <div role="alert" class="mt-2 text-xs text-red-300 bg-[#3a1a1a] border border-[#5a2a2a] rounded px-3 py-2">
+                <span class="font-medium text-red-400">Sync failed:</span> {syncFailure[pair.name]}
+              </div>
+            {/if}
+
             <!-- Last sync report -->
             {#if report}
-              <p class="mt-2 text-xs text-green-600">{reportSummary(report)}</p>
+              <p class="mt-2 text-xs {report.errors.length ? 'text-red-400' : 'text-green-600'}">{reportSummary(report)}</p>
+              {#if report.errors.length}
+                <details class="mt-1 text-xs">
+                  <summary class="cursor-pointer text-red-400 hover:text-red-300 select-none">
+                    Show {report.errors.length} {report.errors.length === 1 ? "error" : "errors"}
+                  </summary>
+                  <ul class="mt-1.5 max-h-48 overflow-y-auto bg-[#1e1e1e] border border-[#3a2a2a] rounded divide-y divide-[#2a2a2a]">
+                    {#each report.errors as err}
+                      <li class="px-3 py-1.5">
+                        <div class="text-[#ccc] break-all">{err.path}</div>
+                        <div class="text-red-400/90">{err.message}</div>
+                      </li>
+                    {/each}
+                  </ul>
+                </details>
+              {/if}
             {/if}
 
             <!-- Running PID -->

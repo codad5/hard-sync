@@ -16,6 +16,17 @@
   let error  = $state<string | null>(null);
   let saving = $state(false);
 
+  // Example paths in the style of the user's OS (placeholder text only)
+  const EXAMPLES: Record<string, { base: string; target: string }> = {
+    windows: { base: "C:\\Users\\you\\projects", target: "E:\\backup" },
+    macos:   { base: "/Users/you/projects",          target: "/Volumes/MY_USB/backup" },
+    linux:   { base: "/home/you/projects",           target: "/media/you/MY_USB/backup" },
+  };
+  let examples = $state(EXAMPLES.linux);
+  invoke<string>("cmd_platform")
+    .then((os) => { examples = EXAMPLES[os] ?? EXAMPLES.linux; })
+    .catch(() => {});
+
   async function pickFolder(field: "base" | "target") {
     // open() shows the OS native folder picker
     const selected = await open({ directory: true, multiple: false });
@@ -72,7 +83,7 @@
         id="pair-base"
         type="text"
         bind:value={base}
-        placeholder="C:\Users\you\projects"
+        placeholder={examples.base}
         class="flex-1 bg-[#2a2a2a] border border-[#3a3a3a] rounded px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-blue-600"
       />
       <button
@@ -92,7 +103,7 @@
         id="pair-target"
         type="text"
         bind:value={target}
-        placeholder="E:\backup"
+        placeholder={examples.target}
         class="flex-1 bg-[#2a2a2a] border border-[#3a3a3a] rounded px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-blue-600"
       />
       <button
@@ -106,7 +117,7 @@
 
   <!-- Source side toggle -->
   <div class="mb-5">
-    <label class="block text-xs text-[#888] mb-2">Source of truth (files flow from here)</label>
+    <p class="block text-xs text-[#888] mb-2">Source of truth (files flow from here)</p>
     <div class="flex gap-2">
       <button
         onclick={() => source = "base"}

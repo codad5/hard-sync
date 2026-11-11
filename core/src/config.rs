@@ -125,6 +125,9 @@ pub fn add_pair(pair: PairConfig) -> Result<(), String> {
     if config.pairs.iter().any(|p| p.name == pair.name) {
         return Err(format!("A pair named \"{}\" already exists", pair.name));
     }
+    // Refuse a pair that could never sync: source unreadable or target unwritable.
+    crate::access::check_pair_access(&pair, crate::access::WriteCheck::Probe)
+        .map_err(|e| e.to_string())?;
     config.pairs.push(pair);
     save_config(&config)
 }
@@ -160,6 +163,11 @@ pub fn set_source(name: &str, source: SourceSide) -> Result<(), String> {
         .iter_mut()
         .find(|p| p.name == name)
         .ok_or_else(|| format!("No pair named \"{}\"", name))?;
+    // Flipping the source flips which side gets written to — check the new roles.
+    let mut flipped = pair.clone();
+    flipped.source = source.clone();
+    crate::access::check_pair_access(&flipped, crate::access::WriteCheck::Probe)
+        .map_err(|e| e.to_string())?;
     pair.source = source;
     save_config(&config)
 }

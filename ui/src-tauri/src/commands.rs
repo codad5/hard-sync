@@ -235,3 +235,14 @@ pub fn cmd_stop_watcher(name: String) -> Result<(), String> {
     let _ = pid_file(&name).map(|p| fs::remove_file(p));
     Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// Platform
+// ---------------------------------------------------------------------------
+
+/// The OS the app runs on: "macos", "windows", "linux", ...
+/// Lets the UI show paths in the style people expect on their OS.
+#[tauri::command]
+pub fn cmd_platform() -> &'static str {
+    std::env::consts::OS
+}
