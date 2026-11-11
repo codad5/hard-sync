@@ -57,7 +57,7 @@ pub fn init_callback(data: &fli::command::FliCallbackData) {
             println!("  source:  {}", source_str);
             match &drive_id {
                 Some(id) => {
-                    let label = id.label.as_deref().unwrap_or("unknown");
+                    let label = id.label.as_deref().unwrap_or("(no name)");
                     let uuid  = id.uuid.as_deref().unwrap_or("—");
                     println!("  drive:   {} (uuid: {})", label.yellow(), uuid);
                 }

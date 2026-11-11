@@ -1,5 +1,5 @@
 use colored::Colorize;
-use hard_sync_core::{list_connected_drives, list_pairs, DeleteBehavior, SourceSide};
+use hard_sync_core::{drive_matches_connected, list_connected_drives, list_pairs, DeleteBehavior, SourceSide};
 
 use crate::output::{format_size, print_err};
 
@@ -22,7 +22,7 @@ pub fn list_callback(_data: &fli::command::FliCallbackData) {
                 });
                 match &pair.drive_id {
                     Some(id) => {
-                        let label = id.label.as_deref().unwrap_or("unknown");
+                        let label = id.label.as_deref().unwrap_or("(no name)");
                         let uuid  = id.uuid.as_deref().unwrap_or("—");
                         println!("    drive:   {} ({})", label.yellow(), uuid);
                     }
@@ -58,7 +58,7 @@ pub fn drives_callback(_data: &fli::command::FliCallbackData) {
 
         // Check if any configured pair targets this drive
         let pair_match = pairs.iter().find(|p| {
-            p.drive_id.as_ref().and_then(|id| id.label.as_deref()) == Some(name.as_str())
+            p.drive_id.as_ref().is_some_and(|id| drive_matches_connected(id, drive))
         });
         let pair_tag = match pair_match {
             Some(p) => format!(" — matches pair \"{}\"", p.name).green().to_string(),
