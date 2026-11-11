@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { ask } from "@tauri-apps/plugin-dialog";
+  import { listen } from "@tauri-apps/api/event";
   import { onMount } from "svelte";
   import AddPair from "$lib/AddPair.svelte";
 
@@ -25,6 +26,16 @@
     name: string;
     running: boolean;
     pid: number | null;
+    /** "app" = watched by this app, "external" = by `hsync watch` in a terminal */
+    owner: "app" | "external" | null;
+  }
+
+  /** Payload of the "watch-event" event emitted by the Rust watcher. */
+  interface WatchUpdate {
+    name: string;
+    kind: "watching" | "drive_detected" | "drive_removed" | "sync_started" | "sync_completed" | "sync_error";
+    message: string;
+    report: SyncReport | null;
   }
 
   interface SyncReport {
@@ -51,12 +62,40 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
   let showAddForm = $state(false);
+  // Latest live watcher message per pair ("Drive removed. Waiting for it.")
+  let watchActivity = $state<Record<string, WatchUpdate>>({});
+  // Watcher log lines per pair, loaded when "Show log" is opened
+  let logs = $state<Record<string, string[] | null>>({});
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
 
   // onMount fires once when the component is first added to the DOM
-  onMount(async () => {
-    await loadPairs();
+  onMount(() => {
+    loadPairs();
+
+    // Live events from watchers running in this app
+    const unlistenWatch = listen<WatchUpdate>("watch-event", ({ payload: u }) => {
+      watchActivity = { ...watchActivity, [u.name]: u };
+      if (u.kind === "sync_started") {
+        syncFailure = { ...syncFailure, [u.name]: null };
+      } else if (u.kind === "sync_completed" && u.report) {
+        lastReport = { ...lastReport, [u.name]: u.report };
+      } else if (u.kind === "sync_error") {
+        syncFailure = { ...syncFailure, [u.name]: u.message.replace(/^Sync failed: /, "") };
+      }
+      if (logs[u.name]) loadLog(u.name);
+    });
+    // Tray "Stop all watchers"
+    const unlistenStopped = listen("watchers-changed", () => refreshStatuses());
+    // Terminal watchers can start/stop at any time: refresh when the window is focused
+    const onFocus = () => refreshStatuses();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      unlistenWatch.then((f) => f());
+      unlistenStopped.then((f) => f());
+      window.removeEventListener("focus", onFocus);
+    };
   });
 
   // ── Functions ────────────────────────────────────────────────────────────────
@@ -103,16 +142,30 @@
     try {
       if (statuses[name]?.running) {
         await invoke("cmd_stop_watcher", { name });
-        await refreshStatuses();
+        const { [name]: _, ...rest } = watchActivity;
+        watchActivity = rest;
       } else {
         await invoke("cmd_start_watcher", { name });
-        // Optimistically mark as running — the badge updates immediately
-        statuses = { ...statuses, [name]: { name, running: true, pid: null } };
-        // Then refresh after a short delay to pick up the real PID from the daemon
-        setTimeout(async () => { await refreshStatuses(); }, 800);
       }
     } catch (e) {
       error = String(e);
+    }
+    await refreshStatuses();
+  }
+
+  async function loadLog(name: string) {
+    try {
+      logs = { ...logs, [name]: await invoke<string[]>("cmd_watcher_log", { name, lines: 200 }) };
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
+  function toggleLog(name: string) {
+    if (logs[name]) {
+      logs = { ...logs, [name]: null };
+    } else {
+      loadLog(name);
     }
   }
 
@@ -288,9 +341,30 @@
               {/if}
             {/if}
 
-            <!-- Running PID -->
-            {#if status?.running && status.pid}
-              <p class="mt-1 text-[11px] text-[#555]">PID {status.pid}</p>
+            <!-- Live watcher status -->
+            {#if status?.running}
+              {@const activity = watchActivity[pair.name]}
+              <p class="mt-1 text-[11px] text-[#777]">
+                {#if status.owner === "external"}
+                  Watched from a terminal (<code>hsync watch</code>, PID {status.pid}).
+                {:else if activity}
+                  {activity.message.split("\n")[0]}
+                {:else}
+                  Starting watcher…
+                {/if}
+              </p>
+            {/if}
+
+            <!-- Watcher log (app and terminal watchers both write it) -->
+            <button
+              onclick={() => toggleLog(pair.name)}
+              class="mt-1.5 text-[11px] text-[#666] hover:text-[#aaa]"
+            >
+              {logs[pair.name] ? "Hide log" : "Show log"}
+            </button>
+            {#if logs[pair.name]}
+              {@const lines = logs[pair.name] ?? []}
+              <pre class="mt-1 max-h-56 overflow-y-auto bg-[#1a1a1a] border border-[#333] rounded p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all">{#if lines.length === 0}<span class="text-[#666]">No watcher activity yet.</span>{:else}{#each lines as line}<span class={/(error|failed|! )/i.test(line) ? "text-red-400" : "text-[#999]"}>{line}</span>{"\n"}{/each}{/if}</pre>
             {/if}
 
           </li>

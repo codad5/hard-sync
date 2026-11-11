@@ -12,9 +12,16 @@ All notable changes to this project are documented here.
 - `hard-sync-core`: `check_pair_access`, `check_readable`, `check_writable`, `AccessError`, `WriteCheck`
 - App: sync errors are shown on the pair's card, with an expandable list of each failed file and why
 - App: example paths in the add-pair form match your OS
+- App: **Watch runs inside the app** — no separate `hsync` program needed, and drive detected / syncing / errors show live on the pair card
+- App: "Show log" on each pair (works for app and terminal watchers)
+- App: tray menu "Stop all watchers" — pauses syncing without quitting
+- App: closing the window keeps hard-sync running in the menu bar / tray; on macOS, clicking the Dock icon opens the window
+- A pair can only be watched by one watcher at a time (terminal, `--detach` or app); the second is refused with the PID of the first
 
 ### Fixed
 - App: removing a pair happened immediately, before you answered the "Remove pair?" question
+- App: Watch failed in installed builds because the installers don't include the `hsync` program it tried to start
+- `hsync watch --detach` could overwrite a running watcher's PID file when the pair was already watched
 
 ---
 
