@@ -1,10 +1,10 @@
-# hard-sync-cli — Agent Context
+# hsync — Agent Context
 
 ## What This Crate Is
 
 The published binary crate. A thin wrapper over `hard-sync-core`.
 
-- Crate name: `hard-sync-cli`
+- Crate name: `hsync`
 - Folder: `cli/`
 - Binary name: `hsync`
 - CLI framework: `fli` (user-authored — use latest version on crates.io)
