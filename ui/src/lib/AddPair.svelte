@@ -36,6 +36,10 @@
     }
   }
 
+  function onKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape") onCancel();
+  }
+
   async function submit() {
     error = null;
     if (!name.trim())   { error = "Name is required";        return; }
@@ -54,106 +58,73 @@
   }
 </script>
 
-<div class="bg-[#1e1e1e] border border-[#3a3a3a] rounded-lg p-5 mb-4">
-  <h2 class="text-white font-semibold text-base mb-4">Add sync pair</h2>
+<svelte:window onkeydown={onKeydown} />
 
-  {#if error}
-    <div class="text-red-400 text-sm bg-red-950 border border-red-900 rounded px-3 py-2 mb-4">
-      {error}
+<!-- Sheet: dims the window and drops down from the toolbar, like an NSWindow sheet -->
+<div class="fixed inset-0 z-20 bg-black/25 flex justify-center items-start pt-[52px]" role="presentation">
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="add-pair-title"
+    class="sheet w-[460px] max-w-[calc(100vw-32px)] rounded-b-xl bg-group shadow-[0_12px_40px_rgb(0_0_0/0.28),0_0_0_0.5px_rgb(0_0_0/0.2)] px-5 pt-4 pb-4"
+  >
+  <form onsubmit={(e) => { e.preventDefault(); submit(); }}>
+    <h2 id="add-pair-title" class="text-[13px] font-semibold text-label mb-3">New Sync Pair</h2>
+
+    {#if error}
+      <div role="alert" class="mb-3 rounded-md bg-danger-bg px-2.5 py-1.5 text-[12px] text-danger selectable">{error}</div>
+    {/if}
+
+    <!-- Right-aligned labels, fields in a column: the classic macOS form layout -->
+    <div class="grid grid-cols-[88px_1fr] items-center gap-x-3 gap-y-2.5">
+      <label for="pair-name" class="text-right text-label">Name:</label>
+      <!-- svelte-ignore a11y_autofocus -->
+      <input id="pair-name" class="field w-full" type="text" bind:value={name} placeholder="usb-backup" autofocus />
+
+      <label for="pair-base" class="text-right text-label">Folder:</label>
+      <div class="flex gap-2 min-w-0">
+        <input id="pair-base" class="field flex-1 min-w-0" type="text" bind:value={base} placeholder={examples.base} />
+        <button type="button" class="btn" onclick={() => pickFolder("base")}>Choose…</button>
+      </div>
+
+      <label for="pair-target" class="text-right text-label">Other side:</label>
+      <div class="flex gap-2 min-w-0">
+        <input id="pair-target" class="field flex-1 min-w-0" type="text" bind:value={target} placeholder={examples.target} />
+        <button type="button" class="btn" onclick={() => pickFolder("target")}>Choose…</button>
+      </div>
+
+      <span class="text-right text-label">Copy:</span>
+      <!-- Segmented control -->
+      <div role="radiogroup" aria-label="Copy direction" class="inline-flex w-fit rounded-md bg-window p-0.5 shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.12)]">
+        <button type="button" role="radio" aria-checked={source === "base"} onclick={() => (source = "base")}
+          class="px-3 h-[20px] rounded-[5px] text-[12px] {source === 'base' ? 'bg-control text-label shadow-[0_0.5px_1.5px_rgb(0_0_0/0.2)]' : 'text-secondary'}">
+          Folder → Other side
+        </button>
+        <button type="button" role="radio" aria-checked={source === "target"} onclick={() => (source = "target")}
+          class="px-3 h-[20px] rounded-[5px] text-[12px] {source === 'target' ? 'bg-control text-label shadow-[0_0.5px_1.5px_rgb(0_0_0/0.2)]' : 'text-secondary'}">
+          Other side → Folder
+        </button>
+      </div>
+      <span></span>
+      <p class="text-[11px] text-secondary -mt-1">
+        The other side follows the source: new and changed files are copied over, removed files go to its <code class="font-mono">.hard-sync-trash</code>.
+      </p>
     </div>
-  {/if}
 
-  <!-- Name -->
-  <div class="mb-3">
-    <label class="block text-xs text-[#888] mb-1" for="pair-name">Name</label>
-    <input
-      id="pair-name"
-      type="text"
-      bind:value={name}
-      placeholder="e.g. usb-backup"
-      class="w-full bg-[#2a2a2a] border border-[#3a3a3a] rounded px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-blue-600"
-    />
-  </div>
-
-  <!-- Base path -->
-  <div class="mb-3">
-    <label class="block text-xs text-[#888] mb-1" for="pair-base">Base path (local folder)</label>
-    <div class="flex gap-2">
-      <input
-        id="pair-base"
-        type="text"
-        bind:value={base}
-        placeholder={examples.base}
-        class="flex-1 bg-[#2a2a2a] border border-[#3a3a3a] rounded px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-blue-600"
-      />
-      <button
-        onclick={() => pickFolder("base")}
-        class="px-3 py-2 bg-[#2a2a2a] border border-[#3a3a3a] rounded text-sm text-[#aaa] hover:bg-[#333] hover:text-white transition-colors"
-      >
-        Browse
+    <div class="mt-4 flex justify-end gap-2">
+      <button type="button" class="btn min-w-[72px] justify-center" onclick={onCancel}>Cancel</button>
+      <button type="submit" class="btn btn-primary min-w-[72px] justify-center" disabled={saving}>
+        {saving ? "Adding…" : "Add"}
       </button>
     </div>
-  </div>
-
-  <!-- Target path -->
-  <div class="mb-3">
-    <label class="block text-xs text-[#888] mb-1" for="pair-target">Target path (drive or other folder)</label>
-    <div class="flex gap-2">
-      <input
-        id="pair-target"
-        type="text"
-        bind:value={target}
-        placeholder={examples.target}
-        class="flex-1 bg-[#2a2a2a] border border-[#3a3a3a] rounded px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-blue-600"
-      />
-      <button
-        onclick={() => pickFolder("target")}
-        class="px-3 py-2 bg-[#2a2a2a] border border-[#3a3a3a] rounded text-sm text-[#aaa] hover:bg-[#333] hover:text-white transition-colors"
-      >
-        Browse
-      </button>
-    </div>
-  </div>
-
-  <!-- Source side toggle -->
-  <div class="mb-5">
-    <p class="block text-xs text-[#888] mb-2">Source of truth (files flow from here)</p>
-    <div class="flex gap-2">
-      <button
-        onclick={() => source = "base"}
-        class="flex-1 py-2 rounded text-sm font-medium transition-colors
-          {source === 'base'
-            ? 'bg-blue-700 text-white'
-            : 'bg-[#2a2a2a] border border-[#3a3a3a] text-[#888] hover:text-white'}"
-      >
-        Base → Target
-      </button>
-      <button
-        onclick={() => source = "target"}
-        class="flex-1 py-2 rounded text-sm font-medium transition-colors
-          {source === 'target'
-            ? 'bg-blue-700 text-white'
-            : 'bg-[#2a2a2a] border border-[#3a3a3a] text-[#888] hover:text-white'}"
-      >
-        Target → Base
-      </button>
-    </div>
-  </div>
-
-  <!-- Actions -->
-  <div class="flex gap-2 justify-end">
-    <button
-      onclick={onCancel}
-      class="px-4 py-2 rounded text-sm text-[#888] border border-[#333] hover:bg-[#2a2a2a] hover:text-white transition-colors"
-    >
-      Cancel
-    </button>
-    <button
-      onclick={submit}
-      disabled={saving}
-      class="px-4 py-2 rounded text-sm font-medium bg-blue-700 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-    >
-      {saving ? "Adding…" : "Add pair"}
-    </button>
+  </form>
   </div>
 </div>
+
+<style>
+  .sheet { animation: sheet-in 180ms ease-out; }
+  @keyframes sheet-in {
+    from { transform: translateY(-12px); opacity: 0; }
+    to   { transform: none; opacity: 1; }
+  }
+</style>
