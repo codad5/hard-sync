@@ -29,9 +29,21 @@ pub fn watch_callback(data: &fli::command::FliCallbackData) {
         return;
     }
 
-    // Foreground mode
-    println!("Watching {}...", format!("\"{}\"", name).cyan().bold());
-    println!("{}", "Press Ctrl+C to stop.\n".dimmed());
+    // Foreground mode. When stdout isn't a terminal (a `--detach` watcher writing
+    // to its log file, which the desktop app also shows) there is nobody to press
+    // Ctrl+C, so write a timestamped line in the log's format instead.
+    use std::io::IsTerminal;
+    if std::io::stdout().is_terminal() {
+        println!("Watching {}...", format!("\"{}\"", name).cyan().bold());
+        println!("{}", "Press Ctrl+C to stop.\n".dimmed());
+    } else {
+        println!(
+            "[{}] Watching \"{}\" (hsync CLI, PID {}).",
+            chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+            name,
+            std::process::id()
+        );
+    }
 
     let sounds = get_pair(&name).map(|p| p.sounds).ok();
 

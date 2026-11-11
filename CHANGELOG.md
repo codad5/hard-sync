@@ -24,6 +24,7 @@ All notable changes to this project are documented here.
 - App: removing a pair happened immediately, before you answered the "Remove pair?" question
 - App: Watch failed in installed builds because the installers don't include the `hsync` program it tried to start
 - `hsync watch --detach` could overwrite a running watcher's PID file when the pair was already watched
+- Background (`--detach`) watchers no longer write "Press Ctrl+C to stop" into their log (shown in the app); they log a timestamped start line instead
 
 ---
 
