@@ -4,12 +4,13 @@ All notable changes to this project are documented here.
 
 ---
 
-## [Unreleased]
+## [1.1.0] — 2026-11-12
 
 ### Added
 - Access checks before syncing (core, so CLI, app and watch all get them): the source must be readable and the side being written to must be writable. An unusable drive now fails once, up front, with the reason — e.g. "the drive is mounted read-only. macOS can read NTFS drives but not write to them" — instead of one error per file
 - `hsync init` / adding a pair in the app and `set-source` refuse a setup that could never sync, such as writing to an NTFS drive on macOS
 - `hard-sync-core`: `check_pair_access`, `check_readable`, `check_writable`, `AccessError`, `WriteCheck`
+- `hard-sync-core`: `WatchLock`, `watcher_pid`, `watcher_pid_file`, `watcher_log_file`, `watcher_pids_dir`, `watcher_data_dir`, `is_process_alive` (shared watcher state, moved from the CLI); `watch_pair` now refuses a pair that is already being watched
 - App: sync errors are shown on the pair's card, with an expandable list of each failed file and why
 - App: example paths in the add-pair form match your OS
 - App: **Watch runs inside the app** — no separate `hsync` program needed, and drive detected / syncing / errors show live on the pair card

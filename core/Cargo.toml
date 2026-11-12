@@ -1,6 +1,6 @@
 [package]
 name = "hard-sync-core"
-version = "1.0.2"
+version = "1.1.0"
 edition = "2024"
 description = "Core library for hard-sync: file sync engine, drive detection, config, and watch mode."
 license = "MIT"
