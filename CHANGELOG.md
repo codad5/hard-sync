@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- Release builds: the macOS CLI download was named `hsync-macos-x86_64` but was built for Apple Silicon, and there was no Intel Mac build at all. Releases now build macOS for both Apple Silicon (`aarch64`) and Intel (`x86_64`), CLI and desktop app, each named after its real architecture
+- The release workflow can rebuild the downloads for an existing tag (manual run with a `tag` input)
+
+---
+
 ## [1.1.0] — 2026-11-12
 
 ### Added

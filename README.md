@@ -40,7 +40,7 @@ The desktop app lives in the system tray. Left-click the tray icon to open the w
 - Add new pairs with folder picker dialogs
 - Remove pairs
 
-Download the latest installer from the [Releases](https://github.com/codad5/hard-sync/releases) page (`.exe` for Windows, `.AppImage`/`.deb` for Linux, `.dmg` for macOS).
+Download the latest installer from the [Releases](https://github.com/codad5/hard-sync/releases) page: `.exe`/`.msi` for Windows, `.AppImage`/`.deb`/`.rpm` for Linux, and for macOS `…_aarch64.dmg` (Apple Silicon, M1 and later) or `…_x64.dmg` (Intel). Standalone CLI binaries are attached too (`hsync-macos-aarch64`, `hsync-macos-x86_64`, `hsync-linux-x86_64`, `hsync-windows-x86_64.exe`).
 
 ---
 
