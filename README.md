@@ -343,12 +343,12 @@ clear_trash(&pair_config)?;
 | File sync | ✅ | ✅ | ✅ |
 | Drive detection (by UUID/label) | ✅ | ✅ | ✅ (UUID via `diskutil`) |
 | Watch mode | ✅ | ✅ | ✅ |
-| Background watcher (`--detach`) | ✅ | ✅ | ⚠️ untested |
+| Background watcher (`--detach`) | ✅ | ✅ | ✅ |
 | Autostart on login | ✅ (registry) | ✅ (XDG) | ⚠️ untested (launchd) |
 | Notification sounds | ✅ | ✅ | ✅ |
-| Desktop app (Tauri) | ✅ | ✅ | ⚠️ untested |
+| Desktop app (Tauri) | ✅ | ✅ | ✅ (Apple Silicon and Intel builds) |
 
-The macOS CLI has been tested on Apple Silicon (sync, watch, drive detection with plug/unplug). Items marked ⚠️ should work but haven't been tested yet. Note that macOS mounts NTFS drives read-only, so hard-sync can read from them but not write to them. If you run into issues, please [open an issue](https://github.com/codad5/hard-sync/issues).
+macOS has been tested on Apple Silicon: the CLI (sync, watch, background watcher, drive detection with plug/unplug) and the desktop app (sync, watch from the menu bar). Autostart on login (⚠️) should work but hasn't been tested yet. Note that macOS mounts NTFS drives read-only, so hard-sync can read from them but not write to them. If you run into issues, please [open an issue](https://github.com/codad5/hard-sync/issues).
 
 ---
 
